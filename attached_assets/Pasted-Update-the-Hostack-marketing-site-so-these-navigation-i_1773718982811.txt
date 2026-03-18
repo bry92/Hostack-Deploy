@@ -1,0 +1,288 @@
+Update the Hostack marketing site so these navigation items are no longer placeholders. I want real content, real sections, and real destination pages wired up.
+
+NAV ITEMS TO BUILD OUT
+
+Product
+Features
+Compare
+Pricing
+Changelog
+Resources
+Docs
+GitHub
+Status
+Company
+About
+Blog
+Careers
+
+GOAL
+
+Turn the current marketing navigation into a polished startup-style site with real information architecture, proper routing, and useful content that fits Hostack as an AI-powered hosting/deployment platform.
+
+IMPORTANT RULES
+
+- Do not leave any nav items empty or dead links
+- Every item must route somewhere valid
+- Use polished SaaS copy, not lorem ipsum
+- Keep the design visually consistent with the current Hostack brand
+- Make all pages responsive
+- Reuse components where possible
+- Add strong section headings, feature cards, CTAs, and footer links
+- If a page should be external, clearly mark it
+- If GitHub or Status do not have real external URLs yet, create internal placeholder pages that look intentional and professional
+- Do not break existing auth/app routes
+- Keep marketing pages separate from dashboard/app pages
+
+SITE STRUCTURE TO ADD
+
+1. Product
+Create a Product landing page that explains Hostack at a high level.
+
+Sections:
+- Hero: AI-powered app deployment platform
+- How it works
+- Key capabilities
+- Why Hostack is different
+- CTA to get started
+
+2. Features
+Create a dedicated Features page.
+
+Include detailed sections for:
+- Automated deployments
+- Preview environments
+- Rollbacks
+- Custom domains + SSL
+- Live deployment logs
+- SSH key support
+- Integrations
+- AI copilot
+- Team workflow / project management
+
+3. Compare
+Create a Compare page.
+
+Include comparison cards/tables for:
+- Hostack vs Vercel
+- Hostack vs Netlify
+- Hostack vs Render
+
+Position Hostack around:
+- AI-native deployment experience
+- contextual copilot
+- unified dashboard
+- preview + rollback + domains + integrations in one platform
+
+Do not make false claims. Keep it marketing-friendly but reasonable.
+
+4. Pricing
+Create a Pricing page with 3 tiers.
+
+Suggested plans:
+- Free
+- Pro
+- Team
+
+Include:
+- monthly pricing
+- key limits/features
+- CTA buttons
+- FAQ section
+
+5. Changelog
+Create a Changelog page.
+
+Show recent feature releases in timeline/card format.
+Use realistic entries based on what Hostack already has, such as:
+- Integrations page launched
+- SSH GitHub support added
+- Preview deployments added
+- Rollbacks added
+- SSE log streaming added
+- Custom domains support added
+
+6. Resources
+Create a Resources hub page.
+
+Include cards linking to:
+- Docs
+- Blog
+- Changelog
+- GitHub
+- Status
+- Deployment guides
+- Integration guides
+
+7. Docs
+Create a Docs landing page.
+
+Add categories such as:
+- Getting Started
+- Connect GitHub
+- Deploy your first app
+- Add environment variables
+- Use preview environments
+- Roll back a deployment
+- Connect a custom domain
+- Configure SSH keys
+- Integrations overview
+
+Use a docs-style layout with sidebar and article content.
+At minimum, create a landing page plus several starter doc pages.
+
+8. GitHub
+If a real GitHub repo URL exists, link to it.
+If not, create an internal “GitHub” page that says:
+- open source components coming soon
+- follow development updates
+- repository access info
+Make it look intentional, not broken.
+
+9. Status
+Create a Status page.
+
+Include:
+- current system status cards
+- API
+- Deployments
+- Logs
+- Domains
+- Integrations
+
+Use visual indicators like:
+- Operational
+- Degraded
+- Outage
+
+Also include recent incidents/history UI, even if using static seed data for now.
+
+10. Company
+Make Company a section or landing page that links to:
+- About
+- Blog
+- Careers
+
+11. About
+Create an About page.
+
+Include:
+- Hostack mission
+- what problem it solves
+- why AI-native deployment matters
+- short platform story
+- CTA
+
+12. Blog
+Create a Blog index page.
+
+Seed it with 3–6 realistic posts, for example:
+- Why AI-native deployment is the next wave
+- Preview environments without the DevOps overhead
+- How Hostack reduces deployment friction
+- Shipping faster with rollback-first workflows
+
+Each post should have:
+- title
+- excerpt
+- author/date
+- individual blog detail page
+
+13. Careers
+Create a Careers page.
+
+Include:
+- mission-driven hiring copy
+- why work at Hostack
+- sample open roles
+- “No open roles right now” fallback if needed
+- contact CTA
+
+ROUTING
+
+Create or wire routes for all of the above.
+Example route structure:
+
+/product
+/features
+/compare
+/pricing
+/changelog
+/resources
+/docs
+/docs/getting-started
+/docs/github
+/docs/deployments
+/docs/domains
+/docs/ssh-keys
+/github
+/status
+/company
+/about
+/blog
+/blog/[slug]
+/careers
+
+NAVIGATION BEHAVIOR
+
+- Update header nav to link correctly
+- Update footer nav to link correctly
+- Add dropdowns where helpful:
+  - Product
+  - Resources
+  - Company
+
+Suggested dropdown structure:
+
+Product:
+- Features
+- Compare
+- Pricing
+- Changelog
+
+Resources:
+- Docs
+- Blog
+- GitHub
+- Status
+
+Company:
+- About
+- Careers
+
+CONTENT STYLE
+
+Use strong startup-style copy aligned to Hostack:
+- AI-powered deployment platform
+- automated deploys
+- preview environments
+- rollback support
+- custom domains
+- live logs
+- GitHub integration
+- SSH support
+- AI copilot for deployment context
+
+Do not use generic filler text.
+Write real marketing copy that feels premium and modern.
+
+DESIGN EXPECTATIONS
+
+- Keep the current visual system
+- Use polished cards, sections, badges, tables, and CTAs
+- Add icons where appropriate
+- Make Pricing, Compare, Changelog, and Status visually strong
+- Docs should feel structured and readable
+- Blog should feel like a real company blog
+- Careers should feel credible
+
+FINAL RESULT
+
+When done, the Hostack site should feel like a complete startup website, not a landing page with placeholder nav items.
+
+I want:
+- real pages
+- real copy
+- real links
+- real layout structure
+- polished SaaS presentation

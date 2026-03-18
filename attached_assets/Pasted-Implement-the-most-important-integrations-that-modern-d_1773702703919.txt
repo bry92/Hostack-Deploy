@@ -1,0 +1,262 @@
+Implement the most important integrations that modern developer hosting platforms provide. These integrations power repository deploys, domains, alerts, error tracking, backend services, artifact storage, and analytics.
+
+Hostack should launch with the following 8 integrations in this exact priority order.
+
+------------------------------------------------
+
+1. GITHUB (CORE DEPLOYMENT INTEGRATION)
+
+Purpose:
+Connect repositories and trigger deployments automatically.
+
+Capabilities:
+- Connect GitHub account
+- Install GitHub App
+- Select repositories
+- Auto-deploy on push
+- Pull request preview deployments
+- Commit metadata in deployment history
+- Post deploy status back to GitHub
+
+Deployment workflow:
+
+Developer pushes code
+↓
+GitHub webhook triggers
+↓
+Hostack creates deployment
+↓
+Deployment logs appear in dashboard
+↓
+Preview or production URL generated
+
+Example deployment metadata:
+
+Repository: bry92/gsc-visualizer
+Branch: main
+Commit: da3cfc08
+Message: Fix navigation issue
+
+------------------------------------------------
+
+2. CLOUDFLARE (DOMAINS + DNS)
+
+Purpose:
+Allow users to connect custom domains and manage DNS automatically.
+
+Capabilities:
+- Connect Cloudflare account
+- Create DNS records automatically
+- Attach custom domains to deployments
+- Enable automatic SSL certificates
+- Enable CDN caching
+
+Example domain mapping:
+
+app.mycompany.com → myapp.hostack.app
+
+Dashboard example:
+
+Domains
+app.mycompany.com        SSL Active
+staging.mycompany.com    SSL Active
+
+------------------------------------------------
+
+3. SLACK (DEPLOYMENT NOTIFICATIONS)
+
+Purpose:
+Send deployment notifications to team communication channels.
+
+Capabilities:
+- Connect Slack workspace
+- Choose notification channel
+- Send alerts for:
+  - successful deploy
+  - failed deploy
+  - preview deployment
+
+Example notification:
+
+Hostack Deployment Successful
+
+Project: Marketing Site
+Branch: main
+Commit: Fix navbar
+URL: https://site.hostack.app
+
+------------------------------------------------
+
+4. SENTRY (ERROR TRACKING)
+
+Purpose:
+Track production errors and connect them to deployments.
+
+Capabilities:
+- Connect Sentry account
+- Associate deployment versions with releases
+- Detect error spikes after deployments
+- Link errors to commit SHA
+
+Example workflow:
+
+Deployment v42 released
+↓
+Error rate spikes
+↓
+Developer checks Sentry
+↓
+Rollback deployment
+
+------------------------------------------------
+
+5. SUPABASE (BACKEND + DATABASE)
+
+Purpose:
+Connect backend infrastructure for full-stack apps.
+
+Capabilities:
+- Connect Supabase project
+- Store environment variables
+- Link database connections
+- Use Supabase storage
+- Access authentication services
+
+Example environment variables:
+
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_ANON_KEY
+
+------------------------------------------------
+
+6. S3 / R2 (DEPLOYMENT ARTIFACT STORAGE)
+
+Purpose:
+Store deployment artifacts and static build outputs.
+
+Supported providers:
+- AWS S3
+- Cloudflare R2
+- S3-compatible storage
+
+Capabilities:
+
+Upload build outputs
+Store deployment versions
+Enable instant rollback
+Serve static assets
+
+Example artifact structure:
+
+deployments/
+  project-id/
+    deployment-id/
+      build-output/
+
+------------------------------------------------
+
+7. DISCORD (DEVELOPER NOTIFICATIONS)
+
+Purpose:
+Send deployment updates to Discord channels.
+
+Capabilities:
+- Connect Discord webhook
+- Post deployment events
+- Share preview URLs
+
+Example notification:
+
+Preview Deployment Ready
+
+Project: Dashboard
+Branch: feature-ui
+URL: https://dashboard-git-feature-ui.hostack.app
+
+------------------------------------------------
+
+8. POSTHOG (ANALYTICS)
+
+Purpose:
+Track product analytics tied to deployment versions.
+
+Capabilities:
+
+- Connect PostHog project
+- Tag deployments with release IDs
+- Measure traffic and engagement changes
+- Track feature usage
+
+Example workflow:
+
+Deployment v18 released
+↓
+Feature usage increases
+↓
+Analytics visible in PostHog
+
+------------------------------------------------
+
+HOSTACK INTEGRATIONS PAGE STRUCTURE
+
+Integrations Page Sections:
+
+Connected
+Available
+Recommended
+
+Each integration card should show:
+
+Provider Name
+Description
+Connection Status
+Last Sync / Health Status
+Connect or Manage Button
+
+Example UI Card:
+
+GitHub
+Connected
+Repositories Available: 12
+Auto Deploy: Enabled
+[Manage]
+
+Slack
+Not Connected
+Send deployment alerts to your team
+[Connect]
+
+------------------------------------------------
+
+DATABASE TABLES
+
+Account-level integrations:
+
+create table integrations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,
+  provider text not null,
+  account_label text,
+  status text not null default 'connected',
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+Project-level integration links:
+
+create table project_integrations (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  integration_id uuid not null references integrations(id) on delete cascade,
+  config jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+------------------------------------------------
+
+DESIGN GOAL
+
+Hostack integrations should support the full developer workflow:
+
+Code → Deploy → Domain → Alerts → Errors → Backend → Storage → Analytics

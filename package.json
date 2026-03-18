@@ -1,0 +1,31 @@
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "preinstall": "node -e \"const ua=process.env.npm_config_user_agent || ''; if (!ua.startsWith('pnpm/')) { console.error('This repo requires pnpm. Run: corepack enable'); process.exit(1); }\"",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "dev": "pnpm --filter @workspace/scripts dev",
+    "dev:frontend": "pnpm --filter @workspace/hostack dev",
+    "dev:api": "pnpm --filter @workspace/api-server dev",
+    "smoke": "pnpm --filter @workspace/scripts smoke",
+    "lint": "pnpm -r --filter \"./artifacts/**\" --filter \"./lib/**\" --filter \"./scripts\" --if-present lint",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@rollup/rollup-win32-x64-msvc": "4.59.0",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.1",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.4.0",
+    "lightningcss-win32-x64-msvc": "^1.32.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.57.1"
+  }
+}

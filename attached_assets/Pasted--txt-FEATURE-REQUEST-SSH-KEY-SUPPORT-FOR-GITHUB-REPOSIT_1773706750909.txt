@@ -1,0 +1,186 @@
+```txt
+FEATURE REQUEST: SSH KEY SUPPORT FOR GITHUB REPOSITORY ACCESS
+
+Goal:
+Add SSH key authentication to Hostack so users can securely connect private GitHub repositories for deployments without using personal access tokens.
+
+This feature should allow Hostack to generate and manage SSH keys that can be added to GitHub as Deploy Keys or used with GitHub SSH authentication.
+
+------------------------------------------------
+
+1. SSH KEY GENERATION
+
+When a user connects a GitHub repository, Hostack should generate a unique SSH key pair.
+
+Requirements:
+
+- Generate an ED25519 SSH key pair
+- Store the private key securely
+- Display the public key to the user
+
+Example command equivalent:
+
+ssh-keygen -t ed25519 -C "hostack-deploy" -f deploy_key -N ""
+
+Key structure:
+
+Private Key → stored securely in database or secrets store  
+Public Key → shown to user to add to GitHub repository
+
+------------------------------------------------
+
+2. DATABASE TABLE
+
+Create a table for storing SSH keys.
+
+Example schema:
+
+create table ssh_keys (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  public_key text not null,
+  private_key text not null,
+  provider text default 'github',
+  created_at timestamptz default now()
+);
+
+Important security rule:
+Private keys must never be returned in API responses.
+
+------------------------------------------------
+
+3. GITHUB SETUP WORKFLOW
+
+User flow:
+
+Project → Settings → Repository
+
+User clicks:
+
+"Connect GitHub via SSH"
+
+Hostack generates SSH key pair and displays the public key.
+
+User instructions:
+
+1. Copy the public key
+2. Go to GitHub repository
+3. Navigate to:
+
+Settings → Deploy Keys → Add Deploy Key
+
+4. Paste the public key
+5. Enable "Allow write access" if needed
+
+Example public key format:
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH7... hostack-deploy
+
+------------------------------------------------
+
+4. SSH CLONE FOR DEPLOYMENTS
+
+Once SSH key is stored, deployments should clone the repository using SSH instead of HTTPS.
+
+Example clone command:
+
+git clone git@github.com:OWNER/REPO.git
+
+The deployment worker must load the private key before cloning.
+
+Example environment setup:
+
+export GIT_SSH_COMMAND="ssh -i /tmp/hostack_key -o StrictHostKeyChecking=no"
+
+Then run:
+
+git clone git@github.com:OWNER/REPO.git
+
+------------------------------------------------
+
+5. DEPLOYMENT WORKER CHANGES
+
+Before cloning the repository:
+
+1. Retrieve project SSH key
+2. Write private key to a temporary file
+3. Set correct permissions:
+
+chmod 600 keyfile
+
+4. Configure SSH command to use the key
+5. Clone repository
+
+Example logic:
+
+writePrivateKeyToTempFile()
+setGitSSHCommand()
+gitCloneRepo()
+
+------------------------------------------------
+
+6. INTEGRATIONS PAGE UPDATE
+
+Add a new integration card:
+
+GitHub SSH
+
+Description:
+Securely connect private repositories using SSH deploy keys.
+
+Status states:
+
+Not Connected
+Connected
+Key Generated
+
+UI actions:
+
+Generate Key
+View Public Key
+Regenerate Key
+Disconnect
+
+------------------------------------------------
+
+7. SECURITY REQUIREMENTS
+
+- Private keys must be encrypted at rest
+- Never return private keys through API responses
+- Only deployment workers should access private keys
+- Use temporary files that are deleted after deployment
+- Restrict SSH commands to repository cloning only
+
+------------------------------------------------
+
+8. PROJECT SETTINGS UI
+
+Project → Settings → Repository
+
+Fields:
+
+Repository URL
+Authentication Method
+
+Options:
+
+HTTPS (token)
+SSH key
+
+When SSH is selected:
+
+Show public key and GitHub instructions.
+
+------------------------------------------------
+
+EXPECTED RESULT
+
+Hostack users should be able to:
+
+- Generate SSH deploy keys
+- Add the public key to GitHub
+- Deploy private repositories securely
+- Clone repositories via SSH during deployment
+
+This feature removes the need for GitHub personal access tokens and follows common deployment platform security practices.
+```

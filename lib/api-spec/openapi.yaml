@@ -1,0 +1,2527 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Hostack API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Auth operations
+  - name: projects
+    description: Project operations
+  - name: deployments
+    description: Deployment operations
+  - name: environment-variables
+    description: Environment variable operations
+  - name: profile
+    description: Profile operations
+  - name: integrations
+    description: Integration operations
+  - name: observability
+    description: Runtime logs and metrics
+  - name: ssh-keys
+    description: SSH key management for repository access
+  - name: domains
+    description: Custom domain management
+  - name: copilot
+    description: AI Deploy Copilot
+  - name: notifications
+    description: Deploy notification settings
+  - name: build-rules
+    description: Build rules for automated deployments
+  - name: deploy-webhooks
+    description: Deploy webhook management
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      tags: [auth]
+      summary: Get current auth user
+      responses:
+        "200":
+          description: Current auth user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCurrentAuthUserResponse"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateProfile
+      tags: [profile]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List all user projects
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a new project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectBody"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project by ID
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectBody"
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/deployments:
+    get:
+      operationId: listProjectDeployments
+      tags: [deployments]
+      summary: List deployments for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentListResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: triggerDeployment
+      tags: [deployments]
+      summary: Trigger a new deployment
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerDeploymentBody"
+      responses:
+        "201":
+          description: Deployment triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deployments:
+    get:
+      operationId: listAllDeployments
+      tags: [deployments]
+      summary: List all deployments for the current user
+      responses:
+        "200":
+          description: List of deployments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deployments/{deploymentId}:
+    get:
+      operationId: getDeployment
+      tags: [deployments]
+      summary: Get a deployment by ID
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deployment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deployments/{deploymentId}/promote:
+    post:
+      operationId: promoteDeployment
+      tags: [deployments]
+      summary: Promote a preview deployment to production
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Promoted deployment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/deployments/{deploymentId}/rollback:
+    post:
+      operationId: rollbackDeployment
+      tags: [deployments]
+      summary: Roll back to a previous successful deployment
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Rollback deployment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/copilot/chat:
+    post:
+      operationId: copilotChat
+      tags: [copilot]
+      summary: Stream AI copilot chat response for a project
+      description: Accepts a user message and optional conversation history, returns an SSE stream of AI-generated tokens.
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopilotChatBody"
+      responses:
+        "200":
+          description: SSE stream of chat tokens
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /deployments/{deploymentId}/logs:
+    get:
+      operationId: getDeploymentLogs
+      tags: [deployments]
+      summary: Get logs for a deployment
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deployment logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentLogsResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/github:
+    get:
+      operationId: getGitHubConnection
+      tags: [projects]
+      summary: Get GitHub connection status for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: GitHub connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GitHubConnectionStatus"
+    post:
+      operationId: connectGitHub
+      tags: [projects]
+      summary: Connect GitHub to a project via PAT
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectGitHubBody"
+      responses:
+        "200":
+          description: Connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GitHubConnectionStatus"
+    delete:
+      operationId: disconnectGitHub
+      tags: [projects]
+      summary: Disconnect GitHub from a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GitHubConnectionStatus"
+
+  /projects/{projectId}/webhook:
+    get:
+      operationId: getWebhookInfo
+      tags: [projects]
+      summary: Get webhook URL and metadata for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Webhook info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookInfo"
+
+  /projects/{projectId}/webhook/regenerate:
+    post:
+      operationId: regenerateWebhookSecret
+      tags: [projects]
+      summary: Regenerate the webhook secret for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: New webhook info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegenerateWebhookSecretResponse"
+
+  /github/webhook:
+    post:
+      operationId: receiveGitHubWebhook
+      tags: [projects]
+      summary: Receive GitHub webhook events
+      responses:
+        "200":
+          description: Received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+  /projects/{projectId}/notification-settings:
+    get:
+      operationId: getNotificationSettings
+      tags: [notifications]
+      summary: Get notification settings for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettingsResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateNotificationSettings
+      tags: [notifications]
+      summary: Create or update notification settings
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNotificationSettingsBody"
+      responses:
+        "200":
+          description: Updated notification setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettingResponse"
+        "201":
+          description: Created notification setting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettingResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/notification-settings/{settingId}:
+    delete:
+      operationId: deleteNotificationSetting
+      tags: [notifications]
+      summary: Delete a notification setting
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: settingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/notification-settings/test:
+    post:
+      operationId: testNotification
+      tags: [notifications]
+      summary: Send a test notification to configured channels
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test notification sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestNotificationResponse"
+        "400":
+          description: Failed to send
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestNotificationResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/env-vars:
+    get:
+      operationId: listEnvVars
+      tags: [environment-variables]
+      summary: List environment variables for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of environment variables
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvVarListResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createEnvVar
+      tags: [environment-variables]
+      summary: Create an environment variable
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEnvVarBody"
+      responses:
+        "201":
+          description: Created environment variable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvVar"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /projects/{projectId}/env-vars/{envVarId}:
+    delete:
+      operationId: deleteEnvVar
+      tags: [environment-variables]
+      summary: Delete an environment variable
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: envVarId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [projects]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /integrations:
+    get:
+      operationId: listIntegrations
+      tags: [integrations]
+      summary: List all account integrations
+      responses:
+        "200":
+          description: Integration list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationListResponse"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: connectIntegration
+      tags: [integrations]
+      summary: Connect or update an integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectIntegrationBody"
+      responses:
+        "201":
+          description: Integration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+        "200":
+          description: Integration updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+        "401":
+          description: Unauthorized
+
+  /integrations/{id}:
+    get:
+      operationId: getIntegration
+      tags: [integrations]
+      summary: Get a single integration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    patch:
+      operationId: updateIntegration
+      tags: [integrations]
+      summary: Update an integration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIntegrationBody"
+      responses:
+        "200":
+          description: Updated integration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Integration"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: disconnectIntegration
+      tags: [integrations]
+      summary: Disconnect an integration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+        "401":
+          description: Unauthorized
+
+  /projects/{projectId}/runtime-logs:
+    get:
+      operationId: listRuntimeLogs
+      tags: [observability]
+      summary: List runtime logs for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: deploymentId
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Runtime logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeLogListResponse"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: createRuntimeLog
+      tags: [observability]
+      summary: Ingest a runtime log entry
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRuntimeLogBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeLog"
+    delete:
+      operationId: clearRuntimeLogs
+      tags: [observability]
+      summary: Clear all runtime logs for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+
+  /projects/{projectId}/runtime-logs/simulate:
+    post:
+      operationId: simulateRuntimeLogs
+      tags: [observability]
+      summary: Generate sample runtime logs for demo
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deploymentId:
+                  type: string
+                count:
+                  type: integer
+      responses:
+        "200":
+          description: Simulated logs created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: integer
+                required:
+                  - created
+
+  /projects/{projectId}/metrics/summary:
+    get:
+      operationId: getMetricsSummary
+      tags: [observability]
+      summary: Get aggregated metrics summary for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: deploymentId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Metrics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricsSummary"
+        "401":
+          description: Unauthorized
+
+  /projects/{projectId}/metrics:
+    get:
+      operationId: listMetrics
+      tags: [observability]
+      summary: List raw metric data points
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: deploymentId
+          in: query
+          schema:
+            type: string
+        - name: metricName
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Metrics list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricsListResponse"
+
+  /projects/{projectId}/metrics/simulate:
+    post:
+      operationId: simulateMetrics
+      tags: [observability]
+      summary: Generate sample metrics for demo
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deploymentId:
+                  type: string
+      responses:
+        "200":
+          description: Simulated metrics created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: integer
+                required:
+                  - created
+
+  /projects/{projectId}/ssh-key:
+    get:
+      operationId: getProjectSshKey
+      tags: [ssh-keys]
+      summary: Get the SSH public key for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SSH key (public key only) or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SshKeyResponse"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deleteProjectSshKey
+      tags: [ssh-keys]
+      summary: Delete the SSH key for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+
+  /projects/{projectId}/ssh-key/generate:
+    post:
+      operationId: generateProjectSshKey
+      tags: [ssh-keys]
+      summary: Generate a new ED25519 SSH key pair for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Generated (returns public key only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SshKeyResponse"
+        "401":
+          description: Unauthorized
+
+  /projects/{projectId}/domains:
+    get:
+      operationId: listProjectDomains
+      tags: [domains]
+      summary: List custom domains for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of custom domains
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomDomainListResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Project not found
+    post:
+      operationId: addProjectDomain
+      tags: [domains]
+      summary: Add a custom domain to a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddDomainBody"
+      responses:
+        "201":
+          description: Domain added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomDomainResponse"
+        "400":
+          description: Invalid domain
+        "401":
+          description: Unauthorized
+        "409":
+          description: Domain already exists
+
+  /projects/{projectId}/domains/{domainId}:
+    delete:
+      operationId: removeProjectDomain
+      tags: [domains]
+      summary: Remove a custom domain from a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Domain removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required:
+                  - success
+        "401":
+          description: Unauthorized
+        "404":
+          description: Domain not found
+
+  /projects/{projectId}/domains/{domainId}/verify:
+    post:
+      operationId: verifyProjectDomain
+      tags: [domains]
+      summary: Verify DNS configuration for a custom domain
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: domainId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomDomainResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Domain not found
+
+  /projects/{projectId}/build-rules:
+    get:
+      operationId: listBuildRules
+      tags: [build-rules]
+      summary: List build rules for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of build rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildRuleListResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Project not found
+    post:
+      operationId: createBuildRule
+      tags: [build-rules]
+      summary: Create a build rule
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBuildRuleBody"
+      responses:
+        "201":
+          description: Build rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildRule"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Project not found
+
+  /projects/{projectId}/build-rules/{ruleId}:
+    put:
+      operationId: updateBuildRule
+      tags: [build-rules]
+      summary: Update a build rule
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBuildRuleBody"
+      responses:
+        "200":
+          description: Updated build rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildRule"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBuildRule
+      tags: [build-rules]
+      summary: Delete a build rule
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /projects/{projectId}/deploy-webhooks:
+    get:
+      operationId: listDeployWebhooks
+      tags: [deploy-webhooks]
+      summary: List deploy webhooks for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of deploy webhooks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeployWebhookListResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Project not found
+    post:
+      operationId: createDeployWebhook
+      tags: [deploy-webhooks]
+      summary: Generate a new deploy webhook
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeployWebhookBody"
+      responses:
+        "201":
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeployWebhook"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Project not found
+
+  /projects/{projectId}/deploy-webhooks/{webhookId}:
+    delete:
+      operationId: deleteDeployWebhook
+      tags: [deploy-webhooks]
+      summary: Delete a deploy webhook
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /webhooks/{projectId}/{secret}:
+    post:
+      operationId: triggerDeployWebhook
+      tags: [deploy-webhooks]
+      summary: Trigger a deployment via webhook (public, no auth required)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: secret
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch:
+                  type: string
+                  description: Branch name to deploy. Defaults to "main" if not provided.
+      responses:
+        "200":
+          description: Webhook received but deployment was skipped (e.g. auto-deploy disabled)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "201":
+          description: Deployment triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deployment:
+                    $ref: "#/components/schemas/Deployment"
+                required:
+                  - deployment
+        "404":
+          description: Invalid webhook
+
+  /projects/{projectId}/health:
+    get:
+      operationId: getProjectHealth
+      tags: [observability]
+      summary: Get health status for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectHealth"
+        "401":
+          description: Unauthorized
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    GetCurrentAuthUserResponse:
+      type: object
+      properties:
+        isAuthenticated:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/AuthUser"
+
+    ExchangeMobileAuthorizationCodeBody:
+      type: object
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+        codeVerifier:
+          type: string
+        nonce:
+          type: string
+        redirectUri:
+          type: string
+      required:
+        - code
+        - state
+        - codeVerifier
+        - nonce
+        - redirectUri
+
+    ExchangeMobileAuthorizationCodeResponse:
+      type: object
+      properties:
+        sessionToken:
+          type: string
+      required:
+        - sessionToken
+
+    LogoutMobileSessionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        profileImage:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+      required:
+        - id
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - createdAt
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        framework:
+          type: string
+        repoUrl:
+          type: string
+          nullable: true
+        repoOwner:
+          type: string
+          nullable: true
+        repoName:
+          type: string
+          nullable: true
+        repoBranch:
+          type: string
+          nullable: true
+        rootDirectory:
+          type: string
+          nullable: true
+        buildCommand:
+          type: string
+          nullable: true
+        installCommand:
+          type: string
+          nullable: true
+        autoDeploy:
+          type: boolean
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        latestDeploymentStatus:
+          type: string
+          nullable: true
+      required:
+        - id
+        - userId
+        - name
+        - slug
+        - framework
+        - createdAt
+        - updatedAt
+
+    ProjectListResponse:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+      required:
+        - projects
+
+    CreateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        framework:
+          type: string
+        repoUrl:
+          type: string
+        repoBranch:
+          type: string
+        buildCommand:
+          type: string
+        installCommand:
+          type: string
+        rootDirectory:
+          type: string
+        autoDeploy:
+          type: boolean
+      required:
+        - name
+        - framework
+
+    UpdateProjectBody:
+      type: object
+      properties:
+        name:
+          type: string
+        framework:
+          type: string
+        repoUrl:
+          type: string
+        repoBranch:
+          type: string
+        buildCommand:
+          type: string
+        installCommand:
+          type: string
+        rootDirectory:
+          type: string
+        autoDeploy:
+          type: boolean
+
+    GitHubConnectionStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        repoUrl:
+          type: string
+          nullable: true
+        repoBranch:
+          type: string
+          nullable: true
+        autoDeploy:
+          type: boolean
+          nullable: true
+      required:
+        - connected
+
+    ConnectGitHubBody:
+      type: object
+      properties:
+        githubToken:
+          type: string
+      required:
+        - githubToken
+
+    WebhookInfo:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+        projectId:
+          type: string
+        hasWebhookSecret:
+          type: boolean
+        webhookSecretLastFour:
+          type: string
+      required:
+        - webhookUrl
+        - projectId
+        - hasWebhookSecret
+
+    RegenerateWebhookSecretResponse:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+        projectId:
+          type: string
+        hasWebhookSecret:
+          type: boolean
+        webhookSecretLastFour:
+          type: string
+        webhookSecret:
+          type: string
+      required:
+        - webhookUrl
+        - projectId
+        - hasWebhookSecret
+        - webhookSecret
+
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [queued, preparing, cloning, detecting, installing, building, uploading, ready, deployed, failed]
+        environment:
+          type: string
+          enum: [production, preview]
+        triggerType:
+          type: string
+          enum: [manual, webhook, api, rollback]
+          nullable: true
+        branch:
+          type: string
+          nullable: true
+        commitHash:
+          type: string
+          nullable: true
+        commitMessage:
+          type: string
+          nullable: true
+        deploymentUrl:
+          type: string
+          nullable: true
+        outputDirectory:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        durationSeconds:
+          type: number
+          nullable: true
+        prNumber:
+          type: number
+          nullable: true
+      required:
+        - id
+        - projectId
+        - status
+        - environment
+        - createdAt
+
+    DeploymentListResponse:
+      type: object
+      properties:
+        deployments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deployment"
+      required:
+        - deployments
+
+    TriggerDeploymentBody:
+      type: object
+      properties:
+        environment:
+          type: string
+          enum: [production, preview]
+          default: production
+      required:
+        - environment
+
+    DeploymentLog:
+      type: object
+      properties:
+        id:
+          type: string
+        deploymentId:
+          type: string
+        logLevel:
+          type: string
+          enum: [info, warn, error, success]
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - deploymentId
+        - logLevel
+        - message
+        - createdAt
+
+    DeploymentLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeploymentLog"
+      required:
+        - logs
+
+    EnvVar:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        key:
+          type: string
+        value:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview, all]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - key
+        - value
+        - environment
+        - createdAt
+
+    EnvVarListResponse:
+      type: object
+      properties:
+        envVars:
+          type: array
+          items:
+            $ref: "#/components/schemas/EnvVar"
+      required:
+        - envVars
+
+    CreateEnvVarBody:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview, all]
+      required:
+        - key
+        - value
+        - environment
+
+    DashboardStats:
+      type: object
+      properties:
+        totalProjects:
+          type: integer
+        totalDeployments:
+          type: integer
+        latestDeploymentStatus:
+          type: string
+          nullable: true
+        recentDeployments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deployment"
+      required:
+        - totalProjects
+        - totalDeployments
+        - recentDeployments
+
+    Integration:
+      type: object
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        accountLabel:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [connected, disconnected, error]
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - provider
+        - status
+        - metadata
+        - createdAt
+        - updatedAt
+
+    IntegrationListResponse:
+      type: object
+      properties:
+        integrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Integration"
+      required:
+        - integrations
+
+    ConnectIntegrationBody:
+      type: object
+      properties:
+        provider:
+          type: string
+        accountLabel:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      required:
+        - provider
+
+    UpdateIntegrationBody:
+      type: object
+      properties:
+        accountLabel:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+
+    RuntimeLog:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        deploymentId:
+          type: string
+          nullable: true
+        level:
+          type: string
+          enum: [info, warn, error, debug, success]
+        message:
+          type: string
+        source:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - level
+        - message
+        - createdAt
+
+    RuntimeLogListResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuntimeLog"
+      required:
+        - logs
+
+    CreateRuntimeLogBody:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [info, warn, error, debug, success]
+        message:
+          type: string
+        source:
+          type: string
+        deploymentId:
+          type: string
+      required:
+        - message
+
+    MetricsSummary:
+      type: object
+      properties:
+        requestsPerMin:
+          type: number
+          nullable: true
+        errorRate:
+          type: number
+          nullable: true
+        p95LatencyMs:
+          type: number
+          nullable: true
+        bandwidthKb:
+          type: number
+          nullable: true
+        activeSessions:
+          type: number
+          nullable: true
+        coldStarts:
+          type: number
+          nullable: true
+        uptimePct:
+          type: number
+          nullable: true
+        healthStatus:
+          type: string
+          enum: [healthy, warning, degraded, critical]
+        hasData:
+          type: boolean
+      required:
+        - healthStatus
+        - hasData
+
+    DeploymentMetric:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        deploymentId:
+          type: string
+          nullable: true
+        metricName:
+          type: string
+        metricValue:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - metricName
+        - metricValue
+        - recordedAt
+
+    MetricsListResponse:
+      type: object
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeploymentMetric"
+      required:
+        - metrics
+
+    ProjectHealth:
+      type: object
+      properties:
+        healthStatus:
+          type: string
+          enum: [healthy, warning, degraded, critical, unknown]
+        recentErrorCount:
+          type: integer
+        latestDeploymentId:
+          type: string
+          nullable: true
+        latestDeploymentAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - healthStatus
+        - recentErrorCount
+
+    SshKey:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        publicKey:
+          type: string
+          description: The ED25519 public key in OpenSSH format (safe to share)
+        provider:
+          type: string
+          default: github
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - publicKey
+        - provider
+        - createdAt
+
+    CustomDomain:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        domain:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, failed]
+        verificationToken:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - domain
+        - status
+        - verificationToken
+        - createdAt
+
+    CustomDomainListResponse:
+      type: object
+      properties:
+        domains:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomDomain"
+      required:
+        - domains
+
+    CustomDomainResponse:
+      type: object
+      properties:
+        domain:
+          $ref: "#/components/schemas/CustomDomain"
+      required:
+        - domain
+
+    AddDomainBody:
+      type: object
+      properties:
+        domain:
+          type: string
+      required:
+        - domain
+
+    SshKeyResponse:
+      type: object
+      properties:
+        sshKey:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/SshKey"
+      required:
+        - sshKey
+
+    NotificationSetting:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        channelType:
+          type: string
+          enum: [slack, discord, webhook]
+        webhookUrl:
+          type: string
+          nullable: true
+        eventTypes:
+          type: array
+          items:
+            type: string
+            enum: [deploy_started, deploy_succeeded, deploy_failed]
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - channelType
+        - eventTypes
+        - enabled
+        - createdAt
+        - updatedAt
+
+    NotificationSettingsResponse:
+      type: object
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationSetting"
+      required:
+        - settings
+
+    NotificationSettingResponse:
+      type: object
+      properties:
+        setting:
+          $ref: "#/components/schemas/NotificationSetting"
+      required:
+        - setting
+
+    UpdateNotificationSettingsBody:
+      type: object
+      properties:
+        channelType:
+          type: string
+          enum: [slack, discord, webhook]
+        webhookUrl:
+          type: string
+        eventTypes:
+          type: array
+          items:
+            type: string
+            enum: [deploy_started, deploy_succeeded, deploy_failed]
+        enabled:
+          type: boolean
+      required:
+        - channelType
+
+    TestNotificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+          nullable: true
+      required:
+        - success
+
+    BuildRule:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        branchPattern:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview]
+        autoDeploy:
+          type: boolean
+        buildCommandOverride:
+          type: string
+          nullable: true
+        installCommandOverride:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - branchPattern
+        - environment
+        - autoDeploy
+        - createdAt
+        - updatedAt
+
+    BuildRuleListResponse:
+      type: object
+      properties:
+        buildRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildRule"
+      required:
+        - buildRules
+
+    CreateBuildRuleBody:
+      type: object
+      properties:
+        branchPattern:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview]
+        autoDeploy:
+          type: boolean
+        buildCommandOverride:
+          type: string
+        installCommandOverride:
+          type: string
+      required:
+        - branchPattern
+
+    UpdateBuildRuleBody:
+      type: object
+      properties:
+        branchPattern:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview]
+        autoDeploy:
+          type: boolean
+        buildCommandOverride:
+          type: string
+        installCommandOverride:
+          type: string
+
+    DeployWebhook:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        secret:
+          type: string
+        label:
+          type: string
+        lastTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - projectId
+        - secret
+        - label
+        - createdAt
+
+    DeployWebhookListResponse:
+      type: object
+      properties:
+        webhooks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeployWebhook"
+      required:
+        - webhooks
+
+    CreateDeployWebhookBody:
+      type: object
+      properties:
+        label:
+          type: string
+
+    CopilotChatBody:
+      type: object
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [user, assistant]
+              content:
+                type: string
+            required:
+              - role
+              - content
+      required:
+        - message
