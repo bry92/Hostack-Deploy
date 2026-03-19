@@ -32,7 +32,7 @@ export const deploymentsTable = pgTable("deployments", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
   durationSeconds: integer("duration_seconds"),
   prNumber: integer("pr_number"),
-});
+}).enableRLS();
 
 export const deploymentLogsTable = pgTable("deployment_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -41,7 +41,7 @@ export const deploymentLogsTable = pgTable("deployment_logs", {
   message: text("message").notNull(),
   stepOrder: integer("step_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const insertDeploymentSchema = createInsertSchema(deploymentsTable).omit({
   id: true,

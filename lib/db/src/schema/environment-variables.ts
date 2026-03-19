@@ -11,7 +11,7 @@ export const environmentVariablesTable = pgTable("environment_variables", {
   environment: varchar("environment", { length: 50 }).notNull().default("production"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}).enableRLS();
 
 export const insertEnvVarSchema = createInsertSchema(environmentVariablesTable).omit({
   id: true,

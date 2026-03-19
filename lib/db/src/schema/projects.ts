@@ -24,7 +24,7 @@ export const projectsTable = pgTable("projects", {
   status: varchar("status", { length: 50 }).notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}).enableRLS();
 
 export const insertProjectSchema = createInsertSchema(projectsTable).omit({
   id: true,

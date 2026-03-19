@@ -13,7 +13,7 @@ export const projectNotificationSettingsTable = pgTable("project_notification_se
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
   unique("uq_project_channel").on(table.projectId, table.channelType),
-]);
+]).enableRLS();
 
 export const notificationEventTypesSchema = z.array(
   z.enum(["deploy_started", "deploy_succeeded", "deploy_failed"])

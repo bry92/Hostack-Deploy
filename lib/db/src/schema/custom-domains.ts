@@ -10,6 +10,6 @@ export const customDomainsTable = pgTable("custom_domains", {
   verificationToken: varchar("verification_token", { length: 64 }).notNull(),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export type CustomDomain = typeof customDomainsTable.$inferSelect;

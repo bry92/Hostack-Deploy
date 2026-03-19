@@ -13,7 +13,7 @@ export const buildRulesTable = pgTable("build_rules", {
   installCommandOverride: varchar("install_command_override", { length: 500 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}).enableRLS();
 
 export const deployWebhooksTable = pgTable("deploy_webhooks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -22,7 +22,7 @@ export const deployWebhooksTable = pgTable("deploy_webhooks", {
   label: varchar("label", { length: 255 }).notNull().default("Default"),
   lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const insertBuildRuleSchema = createInsertSchema(buildRulesTable).omit({
   id: true,

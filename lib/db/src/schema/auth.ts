@@ -10,7 +10,7 @@ export const sessionsTable = pgTable(
     expire: timestamp("expire").notNull(),
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
-);
+).enableRLS();
 
 // (IMPORTANT) This table is mandatory for the current session-based auth flow, don't drop it.
 export const usersTable = pgTable("users", {
@@ -21,7 +21,7 @@ export const usersTable = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-});
+}).enableRLS();
 
 export type UpsertUser = typeof usersTable.$inferInsert;
 export type User = typeof usersTable.$inferSelect;
