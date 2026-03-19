@@ -1,4 +1,5 @@
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
+import { eq } from "drizzle-orm";
 import { IS_FALLBACK } from "../lib/runtimeMode.ts";
 
 const router: IRouter = Router();
@@ -22,6 +23,16 @@ function slugify(name: string): string {
     .trim();
 
   return `${base || "project"}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function getProjectId(req: Request): string | null {
+  const projectId = req.params.projectId;
+  if (typeof projectId !== "string") {
+    return null;
+  }
+
+  const trimmed = projectId.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 router.get("/projects", async (req: Request, res: Response, next: NextFunction) => {
@@ -82,6 +93,51 @@ router.post("/projects", async (req: Request, res: Response) => {
     console.error("DB INSERT ERROR:", error);
     res.status(500).json({
       error: "failed_to_create_project",
+      message: error?.message,
+      detail: error?.cause ?? null,
+    });
+  }
+});
+
+router.delete("/projects/:projectId", async (req: Request, res: Response) => {
+  const projectId = getProjectId(req);
+  if (!projectId) {
+    res.status(400).json({ error: "project_id_required" });
+    return;
+  }
+
+  if (IS_FALLBACK) {
+    res.json({
+      success: true,
+      id: projectId,
+    });
+    return;
+  }
+
+  try {
+    const { db } = await import("@workspace/db");
+    const { projectsTable } = await import("@workspace/db/schema");
+
+    const [deleted] = await db
+      .delete(projectsTable)
+      .where(eq(projectsTable.id, projectId))
+      .returning({
+        id: projectsTable.id,
+      });
+
+    if (!deleted) {
+      res.status(404).json({ error: "project_not_found" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      id: deleted.id,
+    });
+  } catch (error: any) {
+    console.error("DB DELETE ERROR:", error);
+    res.status(500).json({
+      error: "failed_to_delete_project",
       message: error?.message,
       detail: error?.cause ?? null,
     });
