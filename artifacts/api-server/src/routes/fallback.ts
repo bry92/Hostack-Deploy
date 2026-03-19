@@ -31,17 +31,6 @@ router.get("/test", (_req: Request, res: Response) => {
   res.json({ message: "fallback API alive" });
 });
 
-router.get("/db/ping", async (_req: Request, res: Response) => {
-  try {
-    const { pingDatabase } = await import("@workspace/db");
-    await pingDatabase();
-    res.json({ db: "ok" });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    res.status(500).json({ db: "error", message });
-  }
-});
-
 router.get("/login", (req: Request, res: Response) => {
   const returnTo = getSafeReturnTo(req.query.returnTo);
   res.redirect(returnTo);
