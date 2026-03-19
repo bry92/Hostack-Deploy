@@ -217,7 +217,7 @@ const itemVariants = {
 };
 
 export default function Home() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { isAuthenticated, isLoading, login, isFallbackMode } = useAuth();
   const [, setLocation] = useLocation();
 
   if (isLoading) return <div className="min-h-screen bg-background" />;
@@ -269,6 +269,13 @@ export default function Home() {
       </nav>
 
       <main className="relative z-10">
+        {isFallbackMode && (
+          <section className="px-6 pt-6">
+            <div className="max-w-5xl mx-auto rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              Local fallback mode is active. Auth and database-backed API routes are stubbed until real configuration is provided.
+            </div>
+          </section>
+        )}
         {/* Hero */}
         <section className="pt-24 md:pt-32 pb-8 px-6 text-center max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>

@@ -2,6 +2,7 @@ import * as client from "openid-client";
 import crypto from "crypto";
 import { type Request, type Response } from "express";
 import { db, sessionsTable } from "@workspace/db";
+import { IS_FALLBACK } from "../../../../lib/runtime-mode/src/index.ts";
 import { eq } from "drizzle-orm";
 import type { AuthUser } from "@workspace/api-zod";
 
@@ -46,14 +47,20 @@ function getClientAuth(): client.ClientAuth | undefined {
 }
 
 export const OIDC_ISSUER_URL = normalizeIssuerUrl(
-  requireEnv("OIDC_ISSUER_URL", "AUTH0_DOMAIN"),
+  IS_FALLBACK
+    ? process.env.OIDC_ISSUER_URL ?? process.env.AUTH0_DOMAIN ?? "https://dev-fallback.auth0.local"
+    : requireEnv("OIDC_ISSUER_URL", "AUTH0_DOMAIN"),
 );
-export const APP_URL = normalizeAppUrl(requireEnv("APP_URL"));
-export const OIDC_CLIENT_ID = requireEnv("OIDC_CLIENT_ID", "AUTH0_CLIENT_ID");
+export const APP_URL = normalizeAppUrl(
+  IS_FALLBACK ? process.env.APP_URL ?? "http://localhost:3000" : requireEnv("APP_URL"),
+);
+export const OIDC_CLIENT_ID = IS_FALLBACK
+  ? process.env.OIDC_CLIENT_ID ?? process.env.AUTH0_CLIENT_ID ?? "dev-fallback-client-id"
+  : requireEnv("OIDC_CLIENT_ID", "AUTH0_CLIENT_ID");
 export const OIDC_CLIENT_SECRET = getEnv(
   "OIDC_CLIENT_SECRET",
   "AUTH0_CLIENT_SECRET",
-);
+) ?? (IS_FALLBACK ? "dev-fallback-client-secret" : undefined);
 export const OIDC_CLIENT_AUTH_METHOD =
   getEnv("OIDC_CLIENT_AUTH_METHOD") ?? "client_secret_basic";
 export const OIDC_SCOPE =
@@ -82,8 +89,13 @@ export interface SessionData {
 }
 
 let oidcConfig: client.Configuration | null = null;
+const fallbackSessions = new Map<string, SessionData & { expireAt: number }>();
 
 export async function getOidcConfig(): Promise<client.Configuration> {
+  if (IS_FALLBACK) {
+    return {} as client.Configuration;
+  }
+
   if (!oidcConfig) {
     oidcConfig = await client.discovery(
       new URL(OIDC_ISSUER_URL),
@@ -97,6 +109,15 @@ export async function getOidcConfig(): Promise<client.Configuration> {
 
 export async function createSession(data: SessionData): Promise<string> {
   const sid = crypto.randomBytes(32).toString("hex");
+
+  if (IS_FALLBACK) {
+    fallbackSessions.set(sid, {
+      ...data,
+      expireAt: Date.now() + SESSION_TTL,
+    });
+    return sid;
+  }
+
   await db.insert(sessionsTable).values({
     sid,
     sess: data as unknown as Record<string, unknown>,
@@ -106,6 +127,21 @@ export async function createSession(data: SessionData): Promise<string> {
 }
 
 export async function getSession(sid: string): Promise<SessionData | null> {
+  if (IS_FALLBACK) {
+    const session = fallbackSessions.get(sid);
+    if (!session || session.expireAt <= Date.now()) {
+      fallbackSessions.delete(sid);
+      return null;
+    }
+
+    return {
+      access_token: session.access_token,
+      expires_at: session.expires_at,
+      refresh_token: session.refresh_token,
+      user: session.user,
+    };
+  }
+
   const [row] = await db
     .select()
     .from(sessionsTable)
@@ -123,6 +159,14 @@ export async function updateSession(
   sid: string,
   data: SessionData,
 ): Promise<void> {
+  if (IS_FALLBACK) {
+    fallbackSessions.set(sid, {
+      ...data,
+      expireAt: Date.now() + SESSION_TTL,
+    });
+    return;
+  }
+
   await db
     .update(sessionsTable)
     .set({
@@ -133,6 +177,11 @@ export async function updateSession(
 }
 
 export async function deleteSession(sid: string): Promise<void> {
+  if (IS_FALLBACK) {
+    fallbackSessions.delete(sid);
+    return;
+  }
+
   await db.delete(sessionsTable).where(eq(sessionsTable.sid, sid));
 }
 

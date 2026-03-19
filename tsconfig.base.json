@@ -2,6 +2,7 @@
   "compilerOptions": {
     "isolatedModules": true,
     "lib": ["es2022"],
+    "allowImportingTsExtensions": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "noEmitOnError": true,

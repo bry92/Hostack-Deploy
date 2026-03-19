@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx ./src/dev.ts",
-    "hello": "tsx ./src/hello.ts",
+    "dev": "node --experimental-strip-types ./src/dev.ts",
+    "hello": "node --experimental-strip-types ./src/hello.ts",
     "lint": "eslint .",
-    "smoke": "tsx ./src/smoke.ts",
+    "smoke": "node --experimental-strip-types ./src/smoke.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

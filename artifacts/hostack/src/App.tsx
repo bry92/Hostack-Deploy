@@ -1,8 +1,9 @@
-import { Switch, Route } from "wouter";
+import { type ComponentType } from "react";
+import { Switch, Route, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@workspace/auth-web";
+import { AuthProvider, useAuth } from "@workspace/auth-web";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
@@ -15,6 +16,7 @@ import Integrations from "@/pages/integrations";
 import Logs from "@/pages/logs";
 import Metrics from "@/pages/metrics";
 import AuthCallback from "@/pages/auth-callback";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,19 +27,39 @@ const queryClient = new QueryClient({
   },
 });
 
+function ProtectedRoute({ component: Component }: { component: ComponentType }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect to="/" />;
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/projects" component={Projects} />
-      <Route path="/projects/:id" component={ProjectDetail} />
-      <Route path="/projects/:projectId/deployments/:id" component={DeploymentDetail} />
-      <Route path="/deployments" component={Deployments} />
-      <Route path="/integrations" component={Integrations} />
-      <Route path="/logs" component={Logs} />
-      <Route path="/metrics" component={Metrics} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
+      <Route path="/projects">{() => <ProtectedRoute component={Projects} />}</Route>
+      <Route path="/projects/:id">{() => <ProtectedRoute component={ProjectDetail} />}</Route>
+      <Route path="/projects/:projectId/deployments/:id">
+        {() => <ProtectedRoute component={DeploymentDetail} />}
+      </Route>
+      <Route path="/deployments">{() => <ProtectedRoute component={Deployments} />}</Route>
+      <Route path="/integrations">{() => <ProtectedRoute component={Integrations} />}</Route>
+      <Route path="/logs">{() => <ProtectedRoute component={Logs} />}</Route>
+      <Route path="/metrics">{() => <ProtectedRoute component={Metrics} />}</Route>
+      <Route path="/settings">{() => <ProtectedRoute component={Settings} />}</Route>
       <Route path="/callback" component={AuthCallback} />
       <Route component={NotFound} />
     </Switch>

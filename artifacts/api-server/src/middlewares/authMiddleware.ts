@@ -1,6 +1,7 @@
 import * as oidc from "openid-client";
 import { type Request, type Response, type NextFunction } from "express";
 import type { AuthUser } from "@workspace/api-zod";
+import { IS_FALLBACK } from "../../../../lib/runtime-mode/src/index.ts";
 import {
   clearSession,
   getOidcConfig,
@@ -61,6 +62,11 @@ export async function authMiddleware(
   req.isAuthenticated = function (this: Request) {
     return this.user != null;
   } as Request["isAuthenticated"];
+
+  if (IS_FALLBACK) {
+    next();
+    return;
+  }
 
   const sid = getSessionId(req);
   if (!sid) {
