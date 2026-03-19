@@ -35,13 +35,16 @@ function normalizeAppUrl(value: string): string {
 }
 
 function getClientAuth(): client.ClientAuth | undefined {
-  if (!OIDC_CLIENT_SECRET) return undefined;
-
   switch (OIDC_CLIENT_AUTH_METHOD) {
+    case "none":
+      return client.None();
     case "client_secret_post":
       return client.ClientSecretPost(OIDC_CLIENT_SECRET);
     case "client_secret_basic":
+      if (!OIDC_CLIENT_SECRET) return undefined;
+      return client.ClientSecretBasic(OIDC_CLIENT_SECRET);
     default:
+      if (!OIDC_CLIENT_SECRET) return undefined;
       return client.ClientSecretBasic(OIDC_CLIENT_SECRET);
   }
 }
@@ -62,7 +65,7 @@ export const OIDC_CLIENT_SECRET = getEnv(
   "AUTH0_CLIENT_SECRET",
 ) ?? (IS_FALLBACK ? "dev-fallback-client-secret" : undefined);
 export const OIDC_CLIENT_AUTH_METHOD =
-  getEnv("OIDC_CLIENT_AUTH_METHOD") ?? "client_secret_basic";
+  getEnv("OIDC_CLIENT_AUTH_METHOD") ?? (OIDC_CLIENT_SECRET ? "client_secret_basic" : "none");
 export const OIDC_SCOPE =
   getEnv("OIDC_SCOPE", "AUTH0_SCOPE") ?? "openid profile email offline_access";
 export const OIDC_AUDIENCE = getEnv("OIDC_AUDIENCE", "AUTH0_AUDIENCE");

@@ -1,4 +1,8 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  Auth0Provider,
+  type AppState,
+} from "@auth0/auth0-react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { AuthUser } from "@workspace/api-client-react";
 
 type RuntimeMode = "full" | "fallback" | null;
@@ -13,41 +17,137 @@ interface AuthState {
   logout: () => void;
 }
 
+interface AuthBootstrap {
+  runtimeMode: RuntimeMode;
+  user: AuthUser | null;
+}
+
+interface ViteImportMeta extends ImportMeta {
+  readonly env: Record<string, string | undefined>;
+}
+
+const FALLBACK_AUTH0_DOMAIN = "dev-3koeqweojjm248m1.us.auth0.com";
+const FALLBACK_AUTH0_CLIENT_ID = "5efja6URDR5gizWpwRFGuM8mEb7wZiFh";
+const viteEnv = (import.meta as ViteImportMeta).env;
+const AUTH0_DOMAIN = viteEnv["VITE_AUTH0_DOMAIN"] ?? FALLBACK_AUTH0_DOMAIN;
+const AUTH0_CLIENT_ID = viteEnv["VITE_AUTH0_CLIENT_ID"] ?? FALLBACK_AUTH0_CLIENT_ID;
+
 const AuthContext = createContext<AuthState | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function getRuntimeMode(value: unknown): RuntimeMode {
+  return value === "full" || value === "fallback" ? value : null;
+}
+
+function getSafeReturnTo(value: string | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
+
+function getBrowserOrigin(): string | null {
+  return typeof window === "undefined" ? null : window.location.origin;
+}
+
+function BasicAuthProvider({
+  children,
+  state,
+}: {
+  children: ReactNode;
+  state: AuthState;
+}) {
+  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+}
+
+function Auth0Bridge({
+  children,
+  runtimeMode,
+  login,
+  logout,
+}: {
+  children: ReactNode;
+  runtimeMode: RuntimeMode;
+  login: (returnTo?: string) => void;
+  logout: () => void;
+}) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     fetch("/api/auth/user", { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const runtimeHeader = res.headers.get("x-hostack-runtime-mode");
-        return res.json().then((body) => ({
-          runtimeMode: runtimeHeader === "full" || runtimeHeader === "fallback"
-            ? runtimeHeader
-            : body.mode === "full" || body.mode === "fallback"
-            ? body.mode
-            : null,
-          user: body.user as AuthUser | null,
-        }));
-      })
+      .then((res) => res.json())
       .then((data) => {
         if (!cancelled) {
-          setUser(data.user ?? null);
-          setRuntimeMode(data.runtimeMode);
-          setIsLoading(false);
+          setUser((data.user ?? null) as AuthUser | null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to load current auth user", error);
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading: loading,
+        isAuthenticated: !!user,
+        runtimeMode,
+        isFallbackMode: false,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [bootstrap, setBootstrap] = useState<AuthBootstrap>({
+    runtimeMode: null,
+    user: null,
+  });
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/auth/user", { credentials: "include" })
+      .then(async (res) => {
+        const runtimeHeader = getRuntimeMode(res.headers.get("x-hostack-runtime-mode"));
+        const body = await res.json().catch(() => ({}));
+
+        return {
+          runtimeMode: runtimeHeader ?? getRuntimeMode(body.mode),
+          user: (body.user ?? null) as AuthUser | null,
+        };
+      })
+      .then((nextBootstrap) => {
+        if (!cancelled) {
+          setBootstrap(nextBootstrap);
+          setIsBootstrapping(false);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setUser(null);
-          setRuntimeMode(null);
-          setIsLoading(false);
+          setBootstrap({ runtimeMode: null, user: null });
+          setIsBootstrapping(false);
         }
       });
 
@@ -57,28 +157,103 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback((returnTo?: string) => {
-    const target = returnTo || window.location.pathname || "/";
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const target = getSafeReturnTo(returnTo || window.location.pathname || "/");
     window.location.href = `/api/login?returnTo=${encodeURIComponent(target)}`;
   }, []);
 
   const logout = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     window.location.href = "/api/logout";
   }, []);
 
+  if (isBootstrapping) {
+    return (
+      <BasicAuthProvider
+        state={{
+          user: null,
+          isLoading: true,
+          isAuthenticated: false,
+          runtimeMode: null,
+          isFallbackMode: false,
+          login,
+          logout,
+        }}
+      >
+        {children}
+      </BasicAuthProvider>
+    );
+  }
+
+  if (bootstrap.runtimeMode !== "full") {
+    return (
+      <BasicAuthProvider
+        state={{
+          user: bootstrap.user,
+          isLoading: false,
+          isAuthenticated: !!bootstrap.user,
+          runtimeMode: bootstrap.runtimeMode,
+          isFallbackMode: bootstrap.runtimeMode === "fallback",
+          login,
+          logout,
+        }}
+      >
+        {children}
+      </BasicAuthProvider>
+    );
+  }
+
+  const redirectUri = getBrowserOrigin();
+
+  if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID || !redirectUri) {
+    return (
+      <BasicAuthProvider
+        state={{
+          user: bootstrap.user,
+          isLoading: false,
+          isAuthenticated: !!bootstrap.user,
+          runtimeMode: bootstrap.runtimeMode,
+          isFallbackMode: false,
+          login,
+          logout,
+        }}
+      >
+        {children}
+      </BasicAuthProvider>
+    );
+  }
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        runtimeMode,
-        isFallbackMode: runtimeMode === "fallback",
-        login,
-        logout,
+    <Auth0Provider
+      domain={AUTH0_DOMAIN}
+      clientId={AUTH0_CLIENT_ID}
+      authorizationParams={{ redirect_uri: redirectUri }}
+      onRedirectCallback={(appState?: AppState) => {
+        if (typeof window === "undefined") {
+          return;
+        }
+
+        const target = getSafeReturnTo(
+          typeof appState?.returnTo === "string" ? appState.returnTo : window.location.pathname,
+        );
+
+        window.history.replaceState({}, document.title, target);
       }}
     >
-      {children}
-    </AuthContext.Provider>
+      <Auth0Bridge
+        runtimeMode={bootstrap.runtimeMode}
+        login={login}
+        logout={logout}
+      >
+        {children}
+      </Auth0Bridge>
+    </Auth0Provider>
   );
 }
 

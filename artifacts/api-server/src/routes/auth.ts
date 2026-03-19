@@ -59,6 +59,12 @@ function getSafeReturnTo(value: unknown): string {
   return value;
 }
 
+function redirectToAuthError(res: Response, reason: string) {
+  const target = new URL(APP_URL);
+  target.searchParams.set("auth_error", reason);
+  res.redirect(target.href);
+}
+
 async function upsertUser(claims: Record<string, unknown>) {
   const userData = {
     id: claims.sub as string,
@@ -146,7 +152,7 @@ router.get("/callback", async (req: Request, res: Response) => {
   const expectedState = req.cookies?.state;
 
   if (!codeVerifier || !expectedState) {
-    res.redirect("/api/login");
+    redirectToAuthError(res, "missing_login_state");
     return;
   }
 
@@ -162,8 +168,9 @@ router.get("/callback", async (req: Request, res: Response) => {
       expectedState,
       idTokenExpected: true,
     });
-  } catch {
-    res.redirect("/api/login");
+  } catch (error) {
+    console.error("OIDC callback token exchange failed", error);
+    redirectToAuthError(res, "token_exchange_failed");
     return;
   }
 
@@ -176,7 +183,7 @@ router.get("/callback", async (req: Request, res: Response) => {
 
   const claims = tokens.claims();
   if (!claims) {
-    res.redirect("/api/login");
+    redirectToAuthError(res, "missing_claims");
     return;
   }
 
