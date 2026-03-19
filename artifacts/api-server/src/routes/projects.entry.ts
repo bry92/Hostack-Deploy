@@ -1,5 +1,5 @@
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { IS_FALLBACK } from "../lib/runtimeMode.ts";
 
 const router: IRouter = Router();
@@ -66,6 +66,11 @@ router.post("/projects", async (req: Request, res: Response) => {
     return;
   }
 
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   try {
     const { db } = await import("@workspace/db");
     const { projectsTable } = await import("@workspace/db/schema");
@@ -73,7 +78,7 @@ router.post("/projects", async (req: Request, res: Response) => {
     const [created] = await db
       .insert(projectsTable)
       .values({
-        userId: "public-dev",
+        userId: req.user.id,
         name,
         slug: slugify(name),
         framework: "manual",
@@ -114,13 +119,18 @@ router.delete("/projects/:projectId", async (req: Request, res: Response) => {
     return;
   }
 
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   try {
     const { db } = await import("@workspace/db");
     const { projectsTable } = await import("@workspace/db/schema");
 
     const [deleted] = await db
       .delete(projectsTable)
-      .where(eq(projectsTable.id, projectId))
+      .where(and(eq(projectsTable.id, projectId), eq(projectsTable.userId, req.user.id)))
       .returning({
         id: projectsTable.id,
       });
