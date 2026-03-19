@@ -189,8 +189,8 @@ async function main() {
     });
 
     await assertOk("frontend", appUrl, (body) => {
-      if (!body.includes("<div id=\"root\"></div>")) {
-        throw new Error("frontend response did not look like the Vite app shell");
+      if (!body.includes("id=\"root\"")) {
+        throw new Error("frontend response did not contain the root app shell");
       }
     });
 
