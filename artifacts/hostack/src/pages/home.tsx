@@ -284,7 +284,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Hostack's AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
+              Hostack&apos;s AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
               Connect, deploy, done — faster than any other platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

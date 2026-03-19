@@ -28,7 +28,9 @@ function parseRepoOwnerName(repoUrl?: string | null): { repoOwner?: string; repo
 }
 
 function safeProject(p: Record<string, unknown>) {
-  const { githubToken: _t, webhookSecret: _s, ...rest } = p;
+  const { githubToken, webhookSecret, ...rest } = p;
+  void githubToken;
+  void webhookSecret;
   return rest;
 }
 

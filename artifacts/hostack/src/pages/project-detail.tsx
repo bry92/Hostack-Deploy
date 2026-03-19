@@ -57,11 +57,14 @@ import {
   getListDeployWebhooksQueryKey,
 } from "@workspace/api-client-react";
 import type {
+  CustomDomain,
   Integration,
   NotificationSetting,
+  Project,
   UpdateNotificationSettingsBodyChannelType,
   UpdateNotificationSettingsBodyEventTypesItem,
   TestNotificationResponse,
+  VerifyProjectDomainMutationResult,
   BuildRule,
   DeployWebhook,
 } from "@workspace/api-client-react";
@@ -177,7 +180,7 @@ export default function ProjectDetail() {
               <EnvVarsTab projectId={projectId} />
             </TabsContent>
             <TabsContent value="integrations" className="m-0 focus-visible:outline-none">
-              <ProjectIntegrationsTab projectId={projectId} />
+              <ProjectIntegrationsTab />
             </TabsContent>
             <TabsContent value="settings" className="m-0 focus-visible:outline-none">
               <SettingsTab project={project} />
@@ -213,7 +216,7 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
     <Card className="border-border/50 bg-card/30">
       <CardHeader>
         <CardTitle>Deployment History</CardTitle>
-        <CardDescription>View and monitor your project's deployments.</CardDescription>
+        <CardDescription>View and monitor your project&apos;s deployments.</CardDescription>
       </CardHeader>
       <CardContent>
         {deployments.length === 0 ? (
@@ -430,12 +433,14 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                     return updated;
                   });
                 }
-              } catch {}
+              } catch {
+                // Ignore malformed stream chunks while continuing to process the response.
+              }
             }
           }
         }
       }
-    } catch (err) {
+    } catch {
       setMessages(prev => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
@@ -694,7 +699,7 @@ function EnvVarsTab({ projectId }: { projectId: string }) {
             </div>
             <div className="space-y-2 w-full md:w-48">
               <Label>Environment</Label>
-              <Select value={newEnv} onValueChange={(v: any) => setNewEnv(v)}>
+              <Select value={newEnv} onValueChange={(v: "all" | "production" | "preview") => setNewEnv(v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Environments</SelectItem>
@@ -1412,7 +1417,7 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
   );
 }
 
-function BuildSettingsSection({ project }: { project: any }) {
+function BuildSettingsSection({ project }: { project: Project }) {
   const { toast } = useToast();
   const updateMutation = useUpdateProject({
     mutation: {
@@ -1671,7 +1676,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
   const [newDomain, setNewDomain] = useState("");
 
   const { data, isLoading } = useListProjectDomains(projectId);
-  const domains = data?.domains ?? [];
+  const domains: CustomDomain[] = data?.domains ?? [];
 
   const addMutation = useAddProjectDomain({
     mutation: {
@@ -1680,8 +1685,12 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
         queryClient.invalidateQueries({ queryKey: getListProjectDomainsQueryKey(projectId) });
         setNewDomain("");
       },
-      onError: (err: any) => {
-        const msg = err?.response?.data?.error || err.message;
+      onError: (err: unknown) => {
+        const msg = typeof err === "object" && err !== null && "response" in err
+          ? (((err as { response?: { data?: { error?: string } } }).response?.data?.error) ?? "Failed to add domain")
+          : err instanceof Error
+            ? err.message
+            : "Failed to add domain";
         toast({ title: "Failed to add domain", description: msg, variant: "destructive" });
       },
     },
@@ -1699,7 +1708,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
 
   const verifyMutation = useVerifyProjectDomain({
     mutation: {
-      onSuccess: (data: any) => {
+      onSuccess: (data: VerifyProjectDomainMutationResult) => {
         const status = data?.domain?.status;
         if (status === "active") {
           toast({ title: "Domain verified successfully" });
@@ -1746,7 +1755,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
 
       {domains.length > 0 && (
         <div className="rounded-lg border border-border/50 divide-y divide-border/50 overflow-hidden">
-          {domains.map((d: any) => {
+          {domains.map((d) => {
             const sc = statusConfig[d.status] || statusConfig.pending;
             return (
               <div key={d.id} className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/50 transition-colors">
@@ -1822,7 +1831,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
   );
 }
 
-function SettingsTab({ project }: { project: any }) {
+function SettingsTab({ project }: { project: Project }) {
   const { updateProject, deleteProject, isUpdating, isDeleting } = useProjectsMutations();
   const [, setLocation] = useLocation();
   const [name, setName] = useState(project.name);
@@ -1975,7 +1984,7 @@ function SettingsTab({ project }: { project: any }) {
   );
 }
 
-function OverviewTab({ project, projectId }: { project: any; projectId: string }) {
+function OverviewTab({ project, projectId }: { project: Project; projectId: string }) {
   const { data: deploymentsData } = useListProjectDeployments(projectId);
   const { data: healthData } = useGetProjectHealth(projectId);
   const { data: metricsData } = useGetMetricsSummary(projectId, {});
@@ -2366,7 +2375,7 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
       {isEmpty && !summaryQuery.isLoading && (
         <div className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-sm text-amber-400">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          No metrics data yet. Click "Generate Sample Data" to simulate traffic metrics.
+          No metrics data yet. Click &quot;Generate Sample Data&quot; to simulate traffic metrics.
         </div>
       )}
 
@@ -2722,7 +2731,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
   );
 }
 
-function ProjectIntegrationsTab({ projectId: _projectId }: { projectId: string }) {
+function ProjectIntegrationsTab() {
   const INTEGRATION_PROVIDERS = [
     { provider: "github", label: "GitHub", description: "Repository hosting and CI/CD" },
     { provider: "cloudflare", label: "Cloudflare", description: "CDN, DNS, and edge network" },

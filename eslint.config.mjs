@@ -51,7 +51,7 @@ export default tseslint.config(
     },
     settings: {
       react: {
-        version: "detect",
+        version: "19.1",
       },
     },
     rules: {
@@ -65,6 +65,22 @@ export default tseslint.config(
     files: ["**/*.{ts,mts,cts,tsx}"],
     rules: {
       "no-undef": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  {
+    files: ["artifacts/api-server/**/*.{ts,mts,cts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-empty-object-type": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-namespace": "off",
     },
   },
   eslintConfigPrettier,

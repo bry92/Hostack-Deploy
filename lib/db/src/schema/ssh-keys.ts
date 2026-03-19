@@ -1,5 +1,5 @@
 import { pgTable, timestamp, text, varchar } from "drizzle-orm/pg-core";
-import { sql, relations } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { projectsTable } from "./projects";
 
 export const sshKeysTable = pgTable("ssh_keys", {

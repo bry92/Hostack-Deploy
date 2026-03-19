@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useListIntegrations, useConnectIntegration, useDisconnectIntegration, getListIntegrationsQueryKey, type Integration } from "@workspace/api-client-react";
-import { CheckCircle2, XCircle, RefreshCw, Link2Off, AlertCircle, ExternalLink } from "lucide-react";
+import { CheckCircle2, Link2Off, AlertCircle, ExternalLink } from "lucide-react";
 
 const PROVIDERS = [
   {

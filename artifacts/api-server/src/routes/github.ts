@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { projectsTable, deploymentsTable } from "@workspace/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { determineExecutionMode, startDeploymentExecution } from "../services/deploymentExecutor.js";
 import { APP_URL } from "../lib/auth.js";
 import { decryptString, encryptString } from "../lib/secrets.js";
@@ -11,18 +11,6 @@ const router: IRouter = Router();
 
 function generateWebhookSecret(): string {
   return crypto.randomBytes(32).toString("hex");
-}
-
-function parseGitHubUrl(repoUrl: string): { owner: string; repo: string } | null {
-  try {
-    const url = new URL(repoUrl.replace(/\.git$/, ""));
-    if (!url.hostname.includes("github.com")) return null;
-    const parts = url.pathname.replace(/^\//, "").split("/");
-    if (parts.length < 2) return null;
-    return { owner: parts[0], repo: parts[1] };
-  } catch {
-    return null;
-  }
 }
 
 function getGitHubWebhookUrl(): string {

@@ -48,7 +48,7 @@ export function usePromoteDeploymentMutation() {
 
   const promoteMutation = usePromoteDeployment({
     mutation: {
-      onSuccess: (_data, variables) => {
+      onSuccess: () => {
         toast({ title: "Deployment promoted to production" });
         queryClient.invalidateQueries({ queryKey: getListAllDeploymentsQueryKey() });
         queryClient.invalidateQueries({

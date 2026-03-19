@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { useListAllDeployments } from "@workspace/api-client-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { formatDuration } from "@/lib/utils";
 import { Box, ExternalLink, Activity } from "lucide-react";
 

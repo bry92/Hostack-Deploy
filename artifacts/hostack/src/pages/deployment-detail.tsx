@@ -132,7 +132,7 @@ export default function DeploymentDetail() {
           <Card className="bg-card/50 border-border/50">
             <CardContent className="p-4 flex flex-col justify-center gap-1">
               <span className="text-xs text-muted-foreground flex items-center gap-1"><Zap className="w-3 h-3" /> Trigger</span>
-              <span className="font-medium text-sm capitalize">{(deployment as any).triggerType || "manual"}</span>
+              <span className="font-medium text-sm capitalize">{deployment.triggerType || "manual"}</span>
             </CardContent>
           </Card>
         </div>

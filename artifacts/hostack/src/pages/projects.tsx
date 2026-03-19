@@ -24,7 +24,6 @@ import { useProjectsMutations } from "@/hooks/use-projects-mutations";
 export default function Projects() {
   const { data, isLoading } = useListProjects();
   const [search, setSearch] = useState("");
-  const [, setLocation] = useLocation();
 
   const projects = data?.projects || [];
   const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
@@ -116,8 +115,8 @@ function CreateProjectDialog() {
       const res = await createProject({ data: { name, framework, repoUrl } });
       setOpen(false);
       setLocation(`/projects/${res.id}`);
-    } catch (err) {
-      // Error handled by hook
+    } catch {
+      // Error handled by the mutation hook.
     }
   };
 
@@ -132,7 +131,7 @@ function CreateProjectDialog() {
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Configure your new project. We'll set up the environment automatically.
+            Configure your new project. We&apos;ll set up the environment automatically.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">

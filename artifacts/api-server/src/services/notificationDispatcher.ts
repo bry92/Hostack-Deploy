@@ -218,11 +218,15 @@ async function resolveAndValidateDNS(hostname: string): Promise<{ valid: boolean
     try {
       const ipv4 = await resolve4(hostname);
       results.push(...ipv4);
-    } catch {}
+    } catch {
+      // Ignore missing IPv4 records and fall through to any IPv6 results.
+    }
     try {
       const ipv6 = await resolve6(hostname);
       results.push(...ipv6);
-    } catch {}
+    } catch {
+      // Ignore missing IPv6 records and keep any IPv4 results.
+    }
 
     if (results.length === 0) {
       return { valid: false, error: "Could not resolve webhook hostname" };
@@ -375,7 +379,9 @@ export async function dispatchDeployNotification(
           break;
       }
 
-      sendWebhook(webhookUrl, body, setting.channelType).catch(() => {});
+      void sendWebhook(webhookUrl, body, setting.channelType).catch((error) => {
+        console.error("Notification webhook error:", error);
+      });
     }
   } catch (err) {
     console.error("Failed to dispatch deploy notification:", err);

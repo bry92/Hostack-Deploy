@@ -11,6 +11,7 @@ import {
   useSimulateRuntimeLogs,
   useClearRuntimeLogs,
   getListRuntimeLogsQueryKey,
+  type RuntimeLog,
 } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import { Search, Terminal, RefreshCw, Radio, Trash2, Zap, AlertCircle, Info, AlertTriangle, Bug } from "lucide-react";
@@ -43,7 +44,7 @@ export default function LogsPage() {
   const [search, setSearch] = useState<string>("");
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [isLiveTail, setIsLiveTail] = useState(false);
-  const [streamLogs, setStreamLogs] = useState<any[]>([]);
+  const [streamLogs, setStreamLogs] = useState<RuntimeLog[]>([]);
   const esRef = useRef<EventSource | null>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -110,7 +111,9 @@ export default function LogsPage() {
         if (msg.type === "log" && msg.data) {
           setStreamLogs(prev => [...prev.slice(-500), msg.data]);
         }
-      } catch {}
+      } catch {
+        // Ignore malformed stream payloads from the demo event source.
+      }
     };
 
     es.onerror = () => {

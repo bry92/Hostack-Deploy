@@ -196,7 +196,7 @@ export default function MetricsPage() {
             {isEmpty && (
               <div className="flex items-center gap-3 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl text-sm text-amber-400">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                No metrics data yet. Click "Generate Sample Data" to simulate production traffic metrics.
+                No metrics data yet. Click &quot;Generate Sample Data&quot; to simulate production traffic metrics.
               </div>
             )}
 

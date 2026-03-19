@@ -5,9 +5,7 @@ import { eq, and, desc, gte, sql, ilike, or } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const LOG_LEVELS = ["info", "warn", "error", "debug", "success"] as const;
-
-type LogLevel = (typeof LOG_LEVELS)[number];
+type LogLevel = "info" | "warn" | "error" | "debug" | "success";
 
 function assertAuth(req: any, res: any): string | null {
   if (!req.isAuthenticated()) {
@@ -37,7 +35,7 @@ router.get("/projects/:projectId/runtime-logs", async (req, res) => {
 
   const { level, search, deploymentId, limit = "200" } = req.query as Record<string, string>;
 
-  let query = db
+  const query = db
     .select()
     .from(runtimeLogsTable)
     .where(
