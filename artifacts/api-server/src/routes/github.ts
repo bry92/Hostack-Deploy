@@ -1,11 +1,11 @@
 import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, deploymentsTable } from "@workspace/db/schema";
+import { integrationsTable, projectsTable, deploymentsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { determineExecutionMode, startDeploymentExecution } from "../services/deploymentExecutor.js";
 import { APP_URL } from "../lib/auth.js";
-import { decryptString, encryptString } from "../lib/secrets.js";
+import { decryptMetadata, decryptString } from "../lib/secrets.js";
 
 const router: IRouter = Router();
 
@@ -28,6 +28,72 @@ function getWebhookInfo(projectId: string, encryptedSecret: string | null) {
   };
 }
 
+async function getGitHubIntegration(userId: string) {
+  const [integration] = await db
+    .select()
+    .from(integrationsTable)
+    .where(and(eq(integrationsTable.userId, userId), eq(integrationsTable.provider, "github")));
+
+  if (!integration) {
+    return null;
+  }
+
+  const metadata = decryptMetadata(integration.metadata as Record<string, unknown> | null);
+  const accessToken = typeof metadata.accessToken === "string" ? metadata.accessToken : null;
+  const accountLogin =
+    typeof metadata.accountLogin === "string"
+      ? metadata.accountLogin
+      : typeof integration.accountLabel === "string"
+        ? integration.accountLabel
+        : null;
+
+  return {
+    accessToken,
+    accountLogin,
+  };
+}
+
+router.get("/github/repos", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const integration = await getGitHubIntegration(req.user.id);
+  if (!integration?.accessToken) {
+    res.status(400).json({ error: "github_not_connected" });
+    return;
+  }
+
+  const githubResponse = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${integration.accessToken}`,
+      "User-Agent": "Hostack",
+    },
+  });
+
+  if (!githubResponse.ok) {
+    const errorText = await githubResponse.text();
+    res.status(502).json({
+      error: "failed_to_load_github_repos",
+      message: errorText || `GitHub responded with ${githubResponse.status}`,
+    });
+    return;
+  }
+
+  const payload = await githubResponse.json() as Array<Record<string, unknown>>;
+  const repos = payload
+    .map((repo) => ({
+      id: String(repo.id ?? ""),
+      fullName: String(repo.full_name ?? ""),
+      defaultBranch: typeof repo.default_branch === "string" ? repo.default_branch : "main",
+    }))
+    .filter((repo) => repo.id && repo.fullName);
+
+  res.json({ repos });
+});
+
 router.get("/projects/:projectId/github", async (req, res) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Unauthorized" });
@@ -46,11 +112,14 @@ router.get("/projects/:projectId/github", async (req, res) => {
     return;
   }
 
+  const integration = await getGitHubIntegration(userId);
+
   res.json({
-    connected: !!project.githubToken,
+    connected: !!integration?.accessToken,
     repoUrl: project.repoUrl,
     repoBranch: project.repoBranch,
     autoDeploy: project.autoDeploy,
+    accountLogin: integration?.accountLogin ?? undefined,
   });
 });
 
@@ -61,12 +130,6 @@ router.post("/projects/:projectId/github", async (req, res) => {
   }
   const userId = req.user.id;
   const { projectId } = req.params;
-  const { githubToken } = req.body;
-
-  if (!githubToken) {
-    res.status(400).json({ error: "githubToken is required" });
-    return;
-  }
 
   const [project] = await db
     .select()
@@ -78,17 +141,18 @@ router.post("/projects/:projectId/github", async (req, res) => {
     return;
   }
 
-  const [updated] = await db
-    .update(projectsTable)
-    .set({ githubToken: encryptString(githubToken) })
-    .where(eq(projectsTable.id, projectId))
-    .returning();
+  const integration = await getGitHubIntegration(userId);
+  if (!integration?.accessToken) {
+    res.status(400).json({ error: "github_not_connected" });
+    return;
+  }
 
   res.json({
     connected: true,
-    repoUrl: updated.repoUrl,
-    repoBranch: updated.repoBranch,
-    autoDeploy: updated.autoDeploy,
+    repoUrl: project.repoUrl,
+    repoBranch: project.repoBranch,
+    autoDeploy: project.autoDeploy,
+    accountLogin: integration.accountLogin ?? undefined,
   });
 });
 
@@ -115,7 +179,12 @@ router.delete("/projects/:projectId/github", async (req, res) => {
     .set({ githubToken: null })
     .where(eq(projectsTable.id, projectId));
 
-  res.json({ connected: false });
+  const integration = await getGitHubIntegration(userId);
+
+  res.json({
+    connected: !!integration?.accessToken,
+    accountLogin: integration?.accountLogin ?? undefined,
+  });
 });
 
 router.get("/projects/:projectId/webhook", async (req, res) => {

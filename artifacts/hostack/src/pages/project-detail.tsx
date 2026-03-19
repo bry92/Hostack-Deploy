@@ -14,11 +14,8 @@ import {
   useListProjectDeployments,
   useListEnvVars,
   useGetGitHubConnection,
-  useConnectGitHub,
-  useDisconnectGitHub,
   useGetWebhookInfo,
   getGetWebhookInfoQueryKey,
-  getGetGitHubConnectionQueryKey,
   useRegenerateWebhookSecret,
   useUpdateProject,
   useListRuntimeLogs,
@@ -773,10 +770,6 @@ function CopyButton({ value }: { value: string }) {
 function GitHubSection({ projectId }: { projectId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [token, setToken] = useState("");
-  const [repoOwner, setRepoOwner] = useState("");
-  const [repoName, setRepoName] = useState("");
-  const [showToken, setShowToken] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [revealedWebhookSecret, setRevealedWebhookSecret] = useState<string | null>(null);
 
@@ -793,28 +786,6 @@ function GitHubSection({ projectId }: { projectId: string }) {
     setShowSecret(false);
   }, [projectId]);
 
-  const connectMutation = useConnectGitHub({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "GitHub connected successfully" });
-        queryClient.invalidateQueries({ queryKey: getGetGitHubConnectionQueryKey(projectId) });
-        queryClient.invalidateQueries({ queryKey: getGetWebhookInfoQueryKey(projectId) });
-        setToken("");
-      },
-      onError: (err) => toast({ title: "Failed to connect GitHub", description: err.message, variant: "destructive" }),
-    },
-  });
-
-  const disconnectMutation = useDisconnectGitHub({
-    mutation: {
-      onSuccess: () => {
-        toast({ title: "GitHub disconnected" });
-        queryClient.invalidateQueries({ queryKey: getGetGitHubConnectionQueryKey(projectId) });
-      },
-      onError: (err) => toast({ title: "Failed to disconnect", description: err.message, variant: "destructive" }),
-    },
-  });
-
   const regenerateMutation = useRegenerateWebhookSecret({
     mutation: {
       onSuccess: (data) => {
@@ -827,19 +798,10 @@ function GitHubSection({ projectId }: { projectId: string }) {
     },
   });
 
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await connectMutation.mutateAsync({
-      projectId,
-      data: { githubToken: token },
-    });
-  };
-
   const currentWebhookSecret = revealedWebhookSecret;
   const hasWebhookSecret = webhookInfo?.hasWebhookSecret ?? false;
-
-  const handleDisconnect = async () => {
-    await disconnectMutation.mutateAsync({ projectId });
+  const handleConnectRedirect = () => {
+    window.location.href = "/api/integrations/github/connect";
   };
 
   if (isLoadingConn) {
@@ -868,72 +830,45 @@ function GitHubSection({ projectId }: { projectId: string }) {
             )}
           </div>
         </div>
-        {connection?.connected && (
+        {connection?.connected ? (
+          <Link href="/integrations">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-border/50 hover:bg-white/5"
+            >
+              Manage in Integrations
+            </Button>
+          </Link>
+        ) : (
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
-            onClick={handleDisconnect}
-            disabled={disconnectMutation.isPending}
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+            onClick={handleConnectRedirect}
+            className="gap-1.5"
           >
-            <Link2Off className="w-3.5 h-3.5 mr-1.5" />
-            {disconnectMutation.isPending ? "Disconnecting..." : "Disconnect"}
+            <Link2 className="w-3.5 h-3.5" />
+            Connect GitHub
           </Button>
         )}
       </div>
 
-      {/* Connect form (only when not connected) */}
+      {/* OAuth guidance (only when not connected) */}
       {!connection?.connected && (
-        <form onSubmit={handleConnect} className="space-y-4 p-4 bg-card/30 rounded-lg border border-border/50">
+        <div className="space-y-4 p-4 bg-card/30 rounded-lg border border-border/50">
           <p className="text-sm text-muted-foreground">
-            Connect a GitHub Personal Access Token to enable private repo deployments and auto-deploy via webhooks.
+            GitHub is connected at the account level now. Start the OAuth flow to authorize repository access, then return here to configure webhooks for this project.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Repository Owner</Label>
-              <Input
-                placeholder="octocat"
-                value={repoOwner}
-                onChange={e => setRepoOwner(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Repository Name</Label>
-              <Input
-                placeholder="my-project"
-                value={repoName}
-                onChange={e => setRepoName(e.target.value)}
-              />
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleConnectRedirect} className="gap-2">
+              <Link2 className="w-4 h-4" />
+              Connect GitHub
+            </Button>
+            <Link href="/integrations">
+              <Button variant="outline">Open Integrations</Button>
+            </Link>
           </div>
-          <div className="space-y-2">
-            <Label>Personal Access Token</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  type={showToken ? "text" : "password"}
-                  value={token}
-                  onChange={e => setToken(e.target.value)}
-                  required
-                  className="pr-10 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground">Needs <code className="bg-white/5 px-1 rounded">repo</code> scope. Token is stored encrypted and never returned in API responses.</p>
-          </div>
-          <Button type="submit" disabled={!token || connectMutation.isPending} className="gap-2">
-            <Link2 className="w-4 h-4" />
-            {connectMutation.isPending ? "Connecting..." : "Connect GitHub"}
-          </Button>
-        </form>
+        </div>
       )}
 
       {/* Webhook info (only when connected) */}

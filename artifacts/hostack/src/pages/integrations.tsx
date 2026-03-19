@@ -11,7 +11,30 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useListIntegrations, useConnectIntegration, useDisconnectIntegration, getListIntegrationsQueryKey, type Integration } from "@workspace/api-client-react";
 import { CheckCircle2, Link2Off, AlertCircle, ExternalLink } from "lucide-react";
 
-const PROVIDERS = [
+type ProviderField = {
+  key: string;
+  label: string;
+  type: "text" | "password";
+  placeholder: string;
+  required: boolean;
+  hint?: string;
+};
+
+type ProviderConfig = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  icon: string;
+  accentColor: string;
+  badgeColor: string;
+  docs?: string;
+  fields: readonly ProviderField[];
+  labelKey: string;
+  stats: (metadata: Record<string, unknown>) => Array<string | null>;
+};
+
+const PROVIDERS: readonly ProviderConfig[] = [
   {
     id: "github",
     name: "GitHub",
@@ -20,14 +43,11 @@ const PROVIDERS = [
     icon: "🐙",
     accentColor: "from-zinc-800 to-zinc-900",
     badgeColor: "bg-zinc-700/50 text-zinc-300",
-    docs: "https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token",
-    fields: [
-      { key: "token", label: "Personal Access Token", type: "password", placeholder: "ghp_xxxxxxxxxxxxxxxxxxxx", required: true, hint: "Needs repo scope" },
-      { key: "orgOrUser", label: "GitHub Account / Org", type: "text", placeholder: "octocat", required: false },
-    ],
-    labelKey: "orgOrUser",
+    docs: "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps",
+    fields: [],
+    labelKey: "accountLogin",
     stats: (m: Record<string, unknown>) => [
-      m.orgOrUser ? `Account: ${m.orgOrUser}` : null,
+      m.accountLogin ? `Account: ${m.accountLogin}` : null,
       m.repoCount ? `${m.repoCount} repos` : null,
     ].filter(Boolean),
   },
@@ -164,9 +184,7 @@ const PROVIDERS = [
       m.host ? `Host: ${m.host}` : "PostHog Cloud",
     ].filter(Boolean),
   },
-] as const;
-
-type ProviderConfig = (typeof PROVIDERS)[number];
+];
 
 function ConnectModal({
   provider,
@@ -290,7 +308,16 @@ function IntegrationCard({
     },
   });
 
+  const isGitHub = provider.id === "github";
   const stats = connected ? provider.stats(connected.metadata as Record<string, unknown>) : [];
+  const handlePrimaryAction = () => {
+    if (isGitHub) {
+      window.location.href = "/api/integrations/github/connect";
+      return;
+    }
+
+    setShowModal(true);
+  };
 
   return (
     <>
@@ -336,10 +363,11 @@ function IntegrationCard({
             <Button
               size="sm"
               variant={connected ? "outline" : "default"}
-              onClick={() => setShowModal(true)}
+              onClick={handlePrimaryAction}
+              disabled={isGitHub && !!connected}
               className={`flex-1 text-xs ${connected ? "border-border/50 hover:bg-white/5" : ""}`}
             >
-              {connected ? "Manage" : "Connect"}
+              {isGitHub ? (connected ? "Connected" : "Connect GitHub") : connected ? "Manage" : "Connect"}
             </Button>
             {connected && (
               <Button
@@ -356,9 +384,11 @@ function IntegrationCard({
         </CardContent>
       </Card>
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <ConnectModal provider={provider} existing={connected} onClose={() => setShowModal(false)} />
-      </Dialog>
+      {!isGitHub && (
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <ConnectModal provider={provider} existing={connected} onClose={() => setShowModal(false)} />
+        </Dialog>
+      )}
 
       <Dialog open={showDisconnect} onOpenChange={setShowDisconnect}>
         <DialogContent className="bg-card border-destructive/20 max-w-sm">

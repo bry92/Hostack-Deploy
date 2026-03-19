@@ -3,8 +3,8 @@ import { mkdtemp, rm, readFile, access, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join, relative } from "path";
 import { db } from "@workspace/db";
-import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable, integrationsTable } from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
 import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
   activateNodeDeployment,
@@ -12,7 +12,7 @@ import {
   packageDeploymentArtifact,
   type RuntimeKind,
 } from "./deploymentRuntime.js";
-import { decryptString } from "../lib/secrets.js";
+import { decryptMetadata, decryptString } from "../lib/secrets.js";
 
 type LogLevel = "info" | "warn" | "error" | "success";
 type FrameworkType =
@@ -394,6 +394,31 @@ async function fetchGitHubCommitInfo(
   }
 }
 
+async function getProjectGitHubToken(project: typeof projectsTable.$inferSelect): Promise<string | null> {
+  const directToken = decryptString(project.githubToken) ?? null;
+  if (directToken) {
+    return directToken;
+  }
+
+  const [integration] = await db
+    .select()
+    .from(integrationsTable)
+    .where(
+      and(
+        eq(integrationsTable.userId, project.userId),
+        eq(integrationsTable.provider, "github"),
+        eq(integrationsTable.status, "connected"),
+      ),
+    );
+
+  if (!integration) {
+    return null;
+  }
+
+  const metadata = decryptMetadata(integration.metadata as Record<string, unknown> | null);
+  return typeof metadata.accessToken === "string" ? metadata.accessToken : null;
+}
+
 function getExpectedOutputDirs(framework: FrameworkType): string[] {
   switch (framework) {
     case "next.js":
@@ -458,7 +483,7 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
   if (!project.repoUrl) throw new Error("No repository URL configured for this project");
 
   const branch = deployment.branch || project.repoBranch || "main";
-  const githubToken = decryptString(project.githubToken) ?? null;
+  const githubToken = await getProjectGitHubToken(project);
   const rules = await db
     .select()
     .from(buildRulesTable)
