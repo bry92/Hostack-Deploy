@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { getRuntimeBootstrap, type RuntimeBootstrap } from "./lib/runtimeMode.ts";
+import projectsEntryRouter from "./routes/projects.entry.ts";
 
 export interface CreatedApp {
   app: Express;
@@ -38,6 +39,7 @@ export async function createApp(): Promise<CreatedApp> {
   app.get("/api/runtime", (_req, res) => {
     res.json({ mode: runtime.mode });
   });
+  app.use("/api", projectsEntryRouter);
   app.use("/api", runtime.router);
 
   return {
