@@ -1,172 +1,208 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { ProtectedLayout } from "@/components/layout/protected-layout";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Plus, Github, Box, Search } from "lucide-react";
-import { useListProjects } from "@workspace/api-client-react";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { FrameworkIcon } from "@/components/ui/framework-icon";
-import { formatDistanceToNow } from "date-fns";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useProjectsMutations } from "@/hooks/use-projects-mutations";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 
-export default function Projects() {
-  const { data, isLoading } = useListProjects();
-  const [search, setSearch] = useState("");
+type Project = {
+  id: string;
+  name: string;
+};
 
-  const projects = data?.projects || [];
-  const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+type Repo = {
+  id: string;
+  fullName: string;
+};
 
-  return (
-    <ProtectedLayout>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-            <p className="text-muted-foreground mt-1">Manage your applications and deployments.</p>
-          </div>
-          <CreateProjectDialog />
-        </div>
+type ProjectsResponse = Project[] | { projects?: Project[] };
+type ReposResponse = { repos?: Repo[] };
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search projects..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 max-w-md bg-card/50 border-border/50 focus-visible:ring-primary/20"
-          />
-        </div>
+function getProjects(data: ProjectsResponse): Project[] {
+  if (Array.isArray(data)) {
+    return data;
+  }
 
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-muted/30 animate-pulse rounded-xl" />)}
-          </div>
-        ) : filteredProjects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 border border-dashed border-border/50 rounded-2xl bg-card/10">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
-              <Box className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">No projects found</h3>
-            <p className="text-muted-foreground text-center max-w-md mb-6">
-              {search ? "No projects match your search criteria." : "Get started by creating your first project and deploying your code."}
-            </p>
-            {!search && <CreateProjectDialog />}
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map(project => (
-              <Link key={project.id} href={`/projects/${project.id}`}>
-                <Card className="hover-elevate cursor-pointer transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm group h-full flex flex-col">
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start">
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-primary/50 transition-colors">
-                        <FrameworkIcon framework={project.framework} />
-                      </div>
-                      <StatusBadge status={project.latestDeploymentStatus} />
-                    </div>
-                    <CardTitle className="mt-4 text-xl group-hover:text-primary transition-colors">{project.name}</CardTitle>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <Github className="w-3 h-3 mr-1" />
-                      <span className="truncate">{project.repoUrl || 'No repository'}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="mt-auto pt-0">
-                    <div className="flex justify-between items-center text-xs border-t border-border/50 pt-4 mt-2">
-                      <span className="text-muted-foreground">{project.framework}</span>
-                      <span className="text-muted-foreground">
-                        {project.updatedAt ? formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true }) : 'Never deployed'}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </ProtectedLayout>
-  );
+  return Array.isArray(data.projects) ? data.projects : [];
 }
 
-function CreateProjectDialog() {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [framework, setFramework] = useState("");
-  const [repoUrl, setRepoUrl] = useState("");
-  const { createProject, isCreating } = useProjectsMutations();
-  const [, setLocation] = useLocation();
+function getRepos(data: ReposResponse): Repo[] {
+  return Array.isArray(data.repos) ? data.repos : [];
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !framework) return;
+export default function ProjectsPage() {
+  const search = useSearch();
+  const [, setLocation] = useLocation();
+  const params = useMemo(() => new URLSearchParams(search), [search]);
+  const isCreating = params.get("new") === "true";
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [githubConnected, setGithubConnected] = useState<boolean | null>(null);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [repoActionLoading, setRepoActionLoading] = useState(false);
+
+  async function loadProjects() {
+    setProjectsLoading(true);
     try {
-      const res = await createProject({ data: { name, framework, repoUrl } });
-      setOpen(false);
-      setLocation(`/projects/${res.id}`);
-    } catch {
-      // Error handled by the mutation hook.
+      const res = await fetch("/api/projects");
+      const data = (await res.json()) as ProjectsResponse & { error?: string };
+      console.log("projects:", data);
+
+      if (!res.ok) {
+        setProjects([]);
+        throw new Error(data.error || "Failed to load projects");
+      }
+
+      setProjects(getProjects(data));
+    } catch (err) {
+      console.error("Failed to load projects", err);
+    } finally {
+      setProjectsLoading(false);
     }
-  };
+  }
+
+  async function loadRepos() {
+    setReposLoading(true);
+    try {
+      const res = await fetch("/api/github/repos");
+      const data: ReposResponse = await res.json();
+      console.log("repos:", data);
+
+      if (!res.ok) {
+        if ((data as { error?: string }).error === "github_not_connected") {
+          setGithubConnected(false);
+          setRepos([]);
+          return;
+        }
+
+        throw new Error("Failed to load repos");
+      }
+
+      setGithubConnected(true);
+      setRepos(getRepos(data));
+    } catch (err) {
+      console.error("Failed to load repos", err);
+      setGithubConnected(null);
+      setRepos([]);
+    } finally {
+      setReposLoading(false);
+    }
+  }
+
+  async function deleteProject(id: string) {
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      setProjects((prev) => prev.filter((project) => project.id !== id));
+    } catch (err) {
+      console.error("Delete failed", err);
+    }
+  }
+
+  async function createProjectFromRepo(repoFullName: string) {
+    setRepoActionLoading(true);
+
+    try {
+      const res = await fetch("/api/projects/from-repo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ repoFullName }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed");
+      }
+
+      await loadProjects();
+      setLocation("/projects");
+    } catch (err) {
+      console.error("Failed to create project from repo", err);
+    } finally {
+      setRepoActionLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadProjects();
+    if (isCreating) {
+      void loadRepos();
+      return;
+    }
+
+    setRepos([]);
+    setGithubConnected(null);
+  }, [isCreating]);
+
+  function connectGitHub() {
+    window.location.href = "/api/integrations/github/connect";
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="shadow-md shadow-primary/20">
-          <Plus className="w-4 h-4 mr-2" /> New Project
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-card border-border">
-        <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
-          <DialogDescription>
-            Configure your new project. We&apos;ll set up the environment automatically.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Project Name</Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="my-awesome-app" required className="bg-background" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="framework">Framework</Label>
-            <Select value={framework} onValueChange={setFramework} required>
-              <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Select a framework" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Next.js">Next.js</SelectItem>
-                <SelectItem value="React">React</SelectItem>
-                <SelectItem value="Vue">Vue</SelectItem>
-                <SelectItem value="Nuxt">Nuxt</SelectItem>
-                <SelectItem value="SvelteKit">SvelteKit</SelectItem>
-                <SelectItem value="Node API">Node API</SelectItem>
-                <SelectItem value="Static Site">Static Site</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="repo">Repository URL (Optional)</Label>
-            <Input id="repo" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/user/repo" className="bg-background" />
-          </div>
-          <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={isCreating || !name || !framework} className="w-full">
-              {isCreating ? "Creating..." : "Create Project"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <div style={{ padding: 24, maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h1>{isCreating ? "Select a Repo" : "Projects"}</h1>
+        {isCreating ? (
+          <button onClick={() => setLocation("/projects")}>Back to Projects</button>
+        ) : (
+          <button onClick={() => setLocation("/projects?new=true")}>+ New Project</button>
+        )}
+      </div>
+
+      {isCreating ? (
+        <div>
+          {reposLoading ? (
+            <p>Loading repos...</p>
+          ) : githubConnected === false ? (
+            <div>
+              <p>Connect GitHub to load repositories.</p>
+              <button onClick={connectGitHub} style={{ marginTop: 8 }}>
+                Connect GitHub
+              </button>
+            </div>
+          ) : repos.length === 0 ? (
+            <p>No GitHub repos available.</p>
+          ) : (
+            repos.map((repo) => (
+              <div key={repo.id} style={{ marginBottom: 10 }}>
+                <span>{repo.fullName}</span>
+                <button
+                  onClick={() => createProjectFromRepo(repo.fullName)}
+                  style={{ marginLeft: 10 }}
+                >
+                  Deploy
+                </button>
+              </div>
+            ))
+          )}
+
+          {repoActionLoading && <p>Creating project...</p>}
+        </div>
+      ) : (
+        <>
+          {projectsLoading ? (
+            <p>Loading...</p>
+          ) : (
+            <ul>
+              {projects.map((project) => (
+                <li key={project.id} style={{ marginBottom: 8 }}>
+                  {project.name}
+                  <button
+                    onClick={() => deleteProject(project.id)}
+                    style={{ marginLeft: 10 }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
   );
 }

@@ -23,7 +23,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground mt-1">Overview of your deployments and projects.</p>
           </div>
-          <Button onClick={() => setLocation("/projects")} className="shadow-md shadow-primary/20">
+          <Button onClick={() => setLocation("/projects?new=true")} className="shadow-md shadow-primary/20">
             <Plus className="w-4 h-4 mr-2" /> New Project
           </Button>
         </div>
@@ -120,7 +120,7 @@ export default function Dashboard() {
               ) : recentProjects.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground mb-4">No projects created yet.</p>
-                  <Button variant="outline" onClick={() => setLocation("/projects")}>Create First Project</Button>
+                  <Button variant="outline" onClick={() => setLocation("/projects?new=true")}>Create First Project</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
