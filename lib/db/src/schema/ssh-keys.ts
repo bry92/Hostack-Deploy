@@ -9,6 +9,6 @@ export const sshKeysTable = pgTable("ssh_keys", {
   privateKey: text("private_key").notNull(),
   provider: varchar("provider", { length: 50 }).notNull().default("github"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export type SshKey = typeof sshKeysTable.$inferSelect;
