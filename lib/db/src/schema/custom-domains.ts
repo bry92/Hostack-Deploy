@@ -1,6 +1,6 @@
 import { pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectsTable } from "./projects";
+import { projectsTable } from "./projects.ts";
 
 export const customDomainsTable = pgTable("custom_domains", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

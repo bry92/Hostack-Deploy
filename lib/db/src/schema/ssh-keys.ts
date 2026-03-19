@@ -1,6 +1,6 @@
 import { pgTable, timestamp, text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { projectsTable } from "./projects";
+import { projectsTable } from "./projects.ts";
 
 export const sshKeysTable = pgTable("ssh_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
