@@ -1,0 +1,46 @@
+# hostack.yaml - The "Source of Truth" for your deployment
+version: "1.0"
+
+# Hostack handles monorepos by defining multiple projects in one file.
+projects:
+  # Project 1: Your Frontend (React/Next.js example)
+  - name: "hostack-dashboard"
+    path: "./apps/web"
+    type: web/react
+    build:
+      command: "npm run build"
+      output: "./dist"
+    # Transparency: See the exact Docker image used for the build
+    builder_image: "node:20-alpine"
+
+  # Project 2: Your n8n Automations
+  - name: "workflow-engine"
+    path: "./apps/n8n"
+    type: automation/n8n
+    
+    # Hostack runs these steps in a dedicated "n8n-builder" container
+    deploy:
+      # Step 1: Pre-deployment checks (Linting & Formatting)
+      # This prevents broken workflows from hitting your production n8n instance.
+      pre_deploy:
+        - "n8n-cli lint ./workflows"
+        - "n8n-cli format ./workflows --check"
+
+      # Step 2: The actual sync command
+      # --git-diff ensures only the workflows changed in THIS commit are updated.
+      # --externalize allows keeping large JS/SQL blocks in separate files for better PR reviews.
+      command: "n8n-cli apply --dir ./workflows --git-diff --externalize"
+
+      # Environment variables pulled from Hostack's encrypted Secret Store
+      env:
+        N8N_API_URL: ${N8N_PROD_URL}
+        N8N_API_KEY: ${N8N_PROD_KEY}
+
+# Global transparency settings
+features:
+  # Hostack can post the "Workflow Diff" as a comment on your GitHub PR.
+  # This makes it easy for teammates to review logic changes before they go live.
+  github_pr_comments: true
+  
+  # Enable raw build log streaming to your dashboard.
+  raw_logs: true

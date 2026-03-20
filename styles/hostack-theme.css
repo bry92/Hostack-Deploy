@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-hostack-dark text-slate-100 font-sans;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0px, transparent 50%),
+      radial-gradient(at 50% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+  }
+
+  /* Hostack Branding for WP Content */
+  .wp-block-post-content h1 { @apply text-4xl font-bold text-hostack-brand mb-4; }
+  .wp-block-post-content h2 { @apply text-2xl font-semibold text-hostack-accent mb-3; }
+  .wp-block-post-content p { @apply text-slate-400 leading-relaxed mb-6; }
+  
+  /* The "Glassmorphism" Card */
+  .hostack-card {
+    @apply bg-hostack-glass backdrop-blur-md border border-white/10 rounded-xl p-8;
+  }
+}

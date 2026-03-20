@@ -4,6 +4,22 @@ Hostack is a PNPM workspace for a deployment platform UI, its API server, shared
 
 The repo is organized as a monorepo so the frontend, backend, database schema, and generated API contracts stay in sync.
 
+## Vision
+
+Hostack is designed as a transparent "deploy-from-GitHub" platform. The long-term goal is Vercel-style push-to-deploy with:
+
+- transparent builds and raw logs
+- hybrid framework detection plus explicit `hostack.yaml` overrides
+- CMS portability, including the static WordPress pipeline assets in this repo
+- automation-as-code support for tools like `n8n`
+
+For the early product narrative and pipeline prototype assets, see:
+
+- [README.hostack.md](./README.hostack.md)
+- [hostack-blog-post.md](./hostack-blog-post.md)
+- [hostack-discussion.md](./hostack-discussion.md)
+- [hostack.yaml](./hostack.yaml)
+
 ## What is in this repo
 
 - `artifacts/hostack`: React 19 + Vite frontend for the Hostack app
@@ -14,8 +30,12 @@ The repo is organized as a monorepo so the frontend, backend, database schema, a
 - `lib/api-zod`: generated Zod validators and shared API types
 - `lib/auth-web`: frontend auth provider/hooks built on the generated client
 - `lib/db`: Drizzle database package and schema exports
-- `scripts`: local development proxy and smoke checks
+- `lib/hostack-config`: typed `hostack.yaml` schema, loader, and resolver
+- `scripts`: local development proxy, smoke checks, and WordPress pipeline helpers
 - `examples`: fixture repos used for deployment/runtime testing
+- `content`: sample content assets for the WordPress static pipeline
+- `styles`: shared design assets used by the prototype pipeline docs
+- `wp-content`: starter WordPress content structure for static export experiments
 
 ## Product surface
 
@@ -145,7 +165,7 @@ pnpm smoke
 
 What they do:
 
-- `pnpm dev`: starts the public proxy plus frontend and API together
+- `pnpm dev`: starts the public proxy plus frontend, API, and worker together
 - `pnpm dev:frontend`: runs the Vite app directly
 - `pnpm dev:api`: runs the API directly
 - `pnpm build`: typechecks then builds all packages with build scripts
