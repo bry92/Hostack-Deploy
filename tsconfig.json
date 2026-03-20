@@ -19,6 +19,9 @@
       "path": "./lib/api-zod"
     },
     {
+      "path": "./lib/hostack-config"
+    },
+    {
       "path": "./lib/auth-web"
     }
   ]

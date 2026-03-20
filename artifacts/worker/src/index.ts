@@ -2,7 +2,7 @@ import { hostname } from "node:os";
 import { pathToFileURL } from "node:url";
 import { db } from "@workspace/db";
 import { claimNextJob, completeJob, failJob, type Job } from "@workspace/queue";
-import { startDeploymentExecution } from "../../api-server/src/services/deploymentExecutor.js";
+import { startDeploymentExecution } from "../../api-server/src/services/deploymentExecutor.ts";
 
 const POLL_INTERVAL_MS = 1000;
 

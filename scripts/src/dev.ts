@@ -339,6 +339,14 @@ async function main() {
     }),
   );
 
+  if (runtimeMode !== "fallback") {
+    children.push(
+      spawnService("worker", "pnpm --filter @workspace/worker dev", {
+        NODE_ENV: "development",
+      }),
+    );
+  }
+
   if (frontendPort != null) {
     children.push(
       spawnService(
@@ -382,6 +390,9 @@ async function main() {
       `[dev] frontend upstream: ${frontendPort == null ? "fallback shell" : `http://127.0.0.1:${frontendPort}`}`,
     );
     console.log(`[dev] api upstream: http://127.0.0.1:${apiPort}`);
+    console.log(
+      `[dev] worker: ${runtimeMode === "fallback" ? "disabled in fallback mode" : "queue consumer running"}`,
+    );
   });
 }
 
