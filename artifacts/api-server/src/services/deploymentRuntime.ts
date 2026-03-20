@@ -187,7 +187,7 @@ export const workerManager = {
   },
 };
 
-async function detectNodeStartCommand(artifactPath: string): Promise<string> {
+export async function detectNodeStartCommand(artifactPath: string): Promise<string> {
   const pkgPath = join(artifactPath, "package.json");
   if (await pathExists(pkgPath)) {
     const pkg = JSON.parse(await readFile(pkgPath, "utf8")) as {

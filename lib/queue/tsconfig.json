@@ -5,12 +5,12 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "dist",
-    "types": ["node"]
+    "rootDir": "src"
   },
   "include": ["src"],
   "references": [
     {
-      "path": "../runtime-mode"
+      "path": "../db"
     }
   ]
 }

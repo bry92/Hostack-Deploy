@@ -11,6 +11,14 @@ type Repo = {
   fullName: string;
 };
 
+type RepoCreateResponse = {
+  deployment?: {
+    id: string;
+    projectId: string;
+  } | null;
+  id: string;
+};
+
 type ProjectsResponse = Project[] | { projects?: Project[] };
 type ReposResponse = { repos?: Repo[] };
 
@@ -112,10 +120,15 @@ export default function ProjectsPage() {
         body: JSON.stringify({ repoFullName }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as RepoCreateResponse & { error?: string };
 
       if (!res.ok) {
         throw new Error(data.error || "Failed");
+      }
+
+      if (data.deployment?.id && data.deployment.projectId) {
+        setLocation(`/projects/${data.deployment.projectId}/deployments/${data.deployment.id}`);
+        return;
       }
 
       await loadProjects();
@@ -180,7 +193,7 @@ export default function ProjectsPage() {
             ))
           )}
 
-          {repoActionLoading && <p>Creating project...</p>}
+          {repoActionLoading && <p>Creating project and starting deployment...</p>}
         </div>
       ) : (
         <>

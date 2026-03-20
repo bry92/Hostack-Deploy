@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { deploymentsTable, deploymentLogsTable, projectsTable } from "@workspace/db/schema";
+import { enqueueJob } from "@workspace/queue";
 import { eq, and, desc, asc } from "drizzle-orm";
-import { startDeploymentExecution, determineExecutionMode } from "../services/deploymentExecutor.js";
+import { determineExecutionMode } from "../services/deploymentExecutor.js";
 import {
   getRuntimePort,
   promoteArtifactToDeployment,
@@ -214,7 +215,10 @@ router.post("/projects/:projectId/deployments", async (req, res) => {
     })
     .returning();
 
-  startDeploymentExecution(deployment.id).catch(console.error);
+  enqueueJob(db, {
+    type: "build_requested",
+    payload: { deploymentId: deployment.id },
+  }).catch(console.error);
 
   res.status(201).json({ ...deployment, projectName: project.name });
 });
@@ -339,7 +343,10 @@ router.post("/deployments/:deploymentId/promote", async (req, res) => {
       branch: source.branch,
     }).catch(console.error);
   } else {
-    startDeploymentExecution(promoted.id).catch(console.error);
+    enqueueJob(db, {
+      type: "build_requested",
+      payload: { deploymentId: promoted.id },
+    }).catch(console.error);
   }
 
   res.status(201).json({ ...promoted, projectName: project?.name || null });
@@ -413,7 +420,13 @@ router.post("/projects/:projectId/deployments/:deploymentId/rollback", async (re
       branch: target.branch,
     }).catch(console.error);
   } else {
-    startDeploymentExecution(rollback.id).catch(console.error);
+    enqueueJob(db, {
+      type: "rollback_requested",
+      payload: {
+        deploymentId: rollback.id,
+        sourceDeploymentId: target.id,
+      },
+    }).catch(console.error);
   }
 
   res.status(201).json({ ...rollback, projectName: project.name });

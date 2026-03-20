@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
-   "compilerOptions": {"strict": true,
-        "forceConsistentCasingInFileNames": true,
+  "compilerOptions": {
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "jsx": "preserve",
     "lib": ["esnext", "dom", "dom.iterable"],
@@ -16,11 +17,7 @@
     }
   },
   "references": [
-    {
-      "path": "../../lib/api-client-react"
-    },
-    {
-      "path": "../../lib/auth-web"
-    }
+    { "path": "../../lib/api-client-react" },
+    { "path": "../../lib/auth-web" }
   ]
 }

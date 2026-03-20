@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { IS_FALLBACK } from "../../runtime-mode/src/index.ts";
+import { IS_FALLBACK } from "@workspace/runtime-mode";
 import * as schema from "./schema/index.ts";
 
 const { Pool } = pg;
@@ -44,13 +44,15 @@ function createFallbackDbStub() {
 const databaseUrl = process.env.DATABASE_URL;
 const shouldUseFallbackStub = IS_FALLBACK || !databaseUrl;
 
-export const pool = shouldUseFallbackStub
-  ? null
+const livePool = shouldUseFallbackStub
+  ? undefined
   : new Pool(getPoolConfig(databaseUrl));
 
-export const db = shouldUseFallbackStub
+export const pool = livePool ?? null;
+
+export const db = shouldUseFallbackStub || !livePool
   ? createFallbackDbStub()
-  : drizzle(pool, { schema });
+  : drizzle(livePool, { schema });
 
 export async function pingDatabase(): Promise<void> {
   if (!databaseUrl) {

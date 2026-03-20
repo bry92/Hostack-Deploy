@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*",
+    "../api-server/src/services/**/*.ts"
+  ],
+  "references": [
+    { "path": "../../lib/db" },
+    { "path": "../../lib/queue" }
+  ]
+}

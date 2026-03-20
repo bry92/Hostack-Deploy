@@ -9,6 +9,7 @@ import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
   activateNodeDeployment,
   activateStaticDeployment,
+  detectNodeStartCommand,
   packageDeploymentArtifact,
   type RuntimeKind,
 } from "./deploymentRuntime.js";
@@ -41,6 +42,34 @@ type DeployStatus =
 const BUILD_TIMEOUT_MS = 5 * 60 * 1000;
 const CANDIDATE_DIRS = [".", "app", "web", "frontend", "client", "src"];
 const FRAMEWORKS_REQUIRING_BUILD: FrameworkType[] = ["next.js", "nuxt", "sveltekit", "vue", "react"];
+const NEXT_CONFIG_FILES = ["next.config.js", "next.config.mjs", "next.config.ts", "next.config.cjs"];
+const VITE_CONFIG_FILES = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs"];
+const NODE_ENTRY_FILES = [
+  "index.js",
+  "index.ts",
+  "server.js",
+  "server.ts",
+  "app.js",
+  "app.ts",
+  "src/index.js",
+  "src/index.ts",
+  "src/server.js",
+  "src/server.ts",
+  "src/app.js",
+  "src/app.ts",
+];
+const SERVER_PACKAGE_MARKERS = [
+  "express",
+  "fastify",
+  "koa",
+  "hono",
+  "@nestjs/core",
+  "@nestjs/common",
+  "@hapi/hapi",
+  "elysia",
+];
+const INSTALL_RETRY_DELAY_MS = 2000;
+const MAX_INSTALL_ATTEMPTS = 3;
 
 function sanitizeMessage(value: string): string {
   return value.replace(/\r/g, "").trimEnd();
@@ -79,13 +108,35 @@ function parseCommand(command: string): { cmd: string; args: string[] } {
   return { cmd, args };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type CommandInput =
+  | string
+  | {
+      args: string[];
+      cmd: string;
+      shell?: boolean;
+    };
+
 function runCommand(
-  command: string,
+  command: CommandInput,
   cwd: string,
   deploymentId: string,
   stepOrderRef: { value: number },
 ): Promise<void> {
-  const { cmd, args } = parseCommand(command);
+  const parsed =
+    typeof command === "string"
+      ? {
+          ...parseCommand(command),
+          shell: /\b(npm|pnpm|yarn)\b/.test(command),
+        }
+      : {
+          args: command.args,
+          cmd: command.cmd,
+          shell: command.shell ?? false,
+        };
 
   return new Promise((resolve, reject) => {
     const baseEnv = { ...process.env };
@@ -94,10 +145,10 @@ function runCommand(
     delete baseEnv.GIT_SSH_COMMAND;
     delete baseEnv.GIT_CREDENTIAL_HELPER;
 
-    const proc = spawn(cmd, args, {
+    const proc = spawn(parsed.cmd, parsed.args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      shell: /\b(npm|pnpm|yarn)\b/.test(command),
+      shell: parsed.shell,
       env: {
         ...baseEnv,
         CI: "true",
@@ -149,14 +200,76 @@ function runCommand(
         resolve();
         return;
       }
-      reject(new Error(`Command '${command}' exited with code ${code}`));
+      reject(
+        new Error(
+          `Command '${
+            typeof command === "string"
+              ? command
+              : `${parsed.cmd} ${parsed.args.join(" ")}`
+          }' exited with code ${code}`,
+        ),
+      );
     });
 
     proc.on("error", (err) => {
       clearTimeout(timeout);
-      reject(new Error(`Failed to start '${command}': ${err.message}`));
+      reject(
+        new Error(
+          `Failed to start '${
+            typeof command === "string"
+              ? command
+              : `${parsed.cmd} ${parsed.args.join(" ")}`
+          }': ${err.message}`,
+        ),
+      );
     });
   });
+}
+
+function isRetryableInstallError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /\bEPERM\b/i.test(message) ||
+    /\bEBUSY\b/i.test(message) ||
+    /\bENOTEMPTY\b/i.test(message) ||
+    /\boperation not permitted\b/i.test(message) ||
+    /\brename\b/i.test(message)
+  );
+}
+
+async function runInstallCommandWithRetry(
+  installCommand: string,
+  cwd: string,
+  deploymentId: string,
+  stepOrderRef: { value: number },
+): Promise<void> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_INSTALL_ATTEMPTS; attempt += 1) {
+    try {
+      await runCommand(installCommand, cwd, deploymentId, stepOrderRef);
+      return;
+    } catch (error) {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      lastError = normalizedError;
+
+      if (attempt >= MAX_INSTALL_ATTEMPTS || !isRetryableInstallError(normalizedError)) {
+        throw normalizedError;
+      }
+
+      await insertLog(
+        deploymentId,
+        `Install hit a transient filesystem lock. Retrying (${attempt + 1}/${MAX_INSTALL_ATTEMPTS})...`,
+        "warn",
+        stepOrderRef,
+      );
+      await sleep(INSTALL_RETRY_DELAY_MS);
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
 }
 
 async function fileExists(path: string): Promise<boolean> {
@@ -170,102 +283,245 @@ async function fileExists(path: string): Promise<boolean> {
 
 interface ProjectRootCandidate {
   dir: string;
-  score: number;
   framework: FrameworkType;
+  hasBuildScript: boolean;
+  hasStartScript: boolean;
+  runtimeHint: RuntimeKind | null;
+  score: number;
 }
 
-async function scoreCandidate(baseDir: string, candidateRelative: string): Promise<ProjectRootCandidate | null> {
-  const candidatePath = candidateRelative === "." ? baseDir : join(baseDir, candidateRelative);
-  const pkgPath = join(candidatePath, "package.json");
+type PackageManager = "npm" | "pnpm" | "yarn";
+type PackageJsonData = {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  scripts?: Record<string, string>;
+};
 
-  if (!(await fileExists(pkgPath))) return null;
+type ResolvedDeploymentPlan = {
+  buildCommand: string | null;
+  buildRoot: string;
+  buildRootRelative: string;
+  framework: FrameworkType;
+  hasBuildScript: boolean;
+  installCommand: string;
+  installCwd: string;
+  installCwdRelative: string;
+  packageManager: PackageManager;
+  rootDirectory: string;
+  runtimeHint: RuntimeKind | null;
+};
 
-  let score = 1;
-  let framework: FrameworkType = "unknown";
+function normalizeRelativePath(value: string): string {
+  return value.replace(/\\/g, "/");
+}
 
-  try {
-    const pkg = JSON.parse(await readFile(pkgPath, "utf8"));
-    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-    const scripts: Record<string, string> = pkg.scripts ?? {};
+function toStoredRelativePath(baseDir: string, targetDir: string): string {
+  const relativePath = normalizeRelativePath(relative(baseDir, targetDir));
+  return relativePath === "." ? "" : relativePath;
+}
 
-    if (typeof scripts.build === "string") score += 2;
+function toLogRelativePath(baseDir: string, targetDir: string): string {
+  return toStoredRelativePath(baseDir, targetDir) || ".";
+}
 
-    if (allDeps["next"]) {
-      framework = "next.js";
-      score += 3;
-    } else if (allDeps["nuxt"] || allDeps["nuxt3"]) {
-      framework = "nuxt";
-      score += 3;
-    } else if (allDeps["@sveltejs/kit"]) {
-      framework = "sveltekit";
-      score += 3;
-    } else if (allDeps["vue"]) {
-      framework = "vue";
-      score += 2;
-    } else if (allDeps["react"]) {
-      framework = "react";
-      score += 2;
-    } else if (Object.keys(allDeps).length > 0) {
-      framework = "node-api";
-      score += 1;
+async function hasAnyFile(baseDir: string, fileNames: string[]): Promise<boolean> {
+  for (const fileName of fileNames) {
+    if (await fileExists(join(baseDir, fileName))) {
+      return true;
     }
-  } catch {
+  }
+  return false;
+}
+
+async function readPackageJson(dir: string): Promise<PackageJsonData | null> {
+  const pkgPath = join(dir, "package.json");
+  if (!(await fileExists(pkgPath))) {
     return null;
   }
 
-  return { dir: candidatePath, score, framework };
+  try {
+    return JSON.parse(await readFile(pkgPath, "utf8")) as PackageJsonData;
+  } catch {
+    return null;
+  }
 }
 
-async function findProjectRoot(repoDir: string): Promise<{ dir: string; framework: FrameworkType } | null> {
-  const candidates: ProjectRootCandidate[] = [];
+function getAllDependencies(pkg: PackageJsonData): Record<string, string> {
+  return {
+    ...(pkg.dependencies ?? {}),
+    ...(pkg.devDependencies ?? {}),
+  };
+}
 
-  for (const candidate of CANDIDATE_DIRS) {
-    const result = await scoreCandidate(repoDir, candidate);
-    if (result) candidates.push(result);
-  }
-
-  if (candidates.length === 0) return null;
-  candidates.sort((left, right) => right.score - left.score);
-  return { dir: candidates[0].dir, framework: candidates[0].framework };
+function hasAnyDependency(allDeps: Record<string, string>, names: string[]): boolean {
+  return names.some((name) => Boolean(allDeps[name]));
 }
 
 async function detectFramework(workDir: string): Promise<{
   framework: FrameworkType;
   hasBuildScript: boolean;
+  hasStartScript: boolean;
+  runtimeHint: RuntimeKind | null;
 }> {
-  const pkgPath = join(workDir, "package.json");
-  if (!(await fileExists(pkgPath))) {
-    return { framework: "static", hasBuildScript: false };
+  const pkg = await readPackageJson(workDir);
+  if (!pkg) {
+    return {
+      framework: "static",
+      hasBuildScript: false,
+      hasStartScript: false,
+      runtimeHint: null,
+    };
   }
 
-  try {
-    const pkg = JSON.parse(await readFile(pkgPath, "utf8"));
-    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-    const scripts: Record<string, string> = pkg.scripts ?? {};
-    const hasBuildScript = typeof scripts.build === "string";
+  const allDeps = getAllDependencies(pkg);
+  const scripts: Record<string, string> = pkg.scripts ?? {};
+  const hasBuildScript = typeof scripts.build === "string" && scripts.build.trim().length > 0;
+  const hasStartScript = typeof scripts.start === "string" && scripts.start.trim().length > 0;
+  const hasNextConfig = await hasAnyFile(workDir, NEXT_CONFIG_FILES);
+  const hasViteConfig = await hasAnyFile(workDir, VITE_CONFIG_FILES);
+  const hasNodeEntry = await hasAnyFile(workDir, NODE_ENTRY_FILES);
 
-    if (allDeps["next"]) return { framework: "next.js", hasBuildScript };
-    if (allDeps["nuxt"] || allDeps["nuxt3"]) return { framework: "nuxt", hasBuildScript };
-    if (allDeps["@sveltejs/kit"]) return { framework: "sveltekit", hasBuildScript };
-    if (allDeps["vue"]) return { framework: "vue", hasBuildScript };
-    if (allDeps["react"]) return { framework: "react", hasBuildScript };
-    if (Object.keys(allDeps).length > 0) return { framework: "node-api", hasBuildScript };
-    return { framework: "static", hasBuildScript: false };
-  } catch {
-    return { framework: "static", hasBuildScript: false };
+  if (hasNextConfig || allDeps["next"]) {
+    return { framework: "next.js", hasBuildScript, hasStartScript, runtimeHint: "static" };
   }
+  if (allDeps["nuxt"] || allDeps["nuxt3"]) {
+    return { framework: "nuxt", hasBuildScript, hasStartScript, runtimeHint: "static" };
+  }
+  if (allDeps["@sveltejs/kit"]) {
+    return { framework: "sveltekit", hasBuildScript, hasStartScript, runtimeHint: "static" };
+  }
+  if (allDeps["vue"]) {
+    return { framework: "vue", hasBuildScript, hasStartScript, runtimeHint: "static" };
+  }
+  if (allDeps["react"]) {
+    return { framework: "react", hasBuildScript, hasStartScript, runtimeHint: "static" };
+  }
+  if (hasStartScript || hasNodeEntry || hasAnyDependency(allDeps, SERVER_PACKAGE_MARKERS)) {
+    return { framework: "node-api", hasBuildScript, hasStartScript, runtimeHint: "node-api" };
+  }
+  if (hasViteConfig || hasBuildScript) {
+    return { framework: "static", hasBuildScript, hasStartScript, runtimeHint: "static" };
+  }
+  if (Object.keys(allDeps).length > 0) {
+    return { framework: "unknown", hasBuildScript, hasStartScript, runtimeHint: null };
+  }
+  return { framework: "static", hasBuildScript, hasStartScript, runtimeHint: null };
 }
 
-function normalizeFrameworkName(framework: string): FrameworkType {
-  const lower = framework.toLowerCase();
-  if (lower.includes("next")) return "next.js";
-  if (lower.includes("nuxt")) return "nuxt";
-  if (lower.includes("svelte")) return "sveltekit";
-  if (lower.includes("vue")) return "vue";
-  if (lower.includes("react")) return "react";
-  if (lower.includes("node")) return "node-api";
-  if (lower.includes("static")) return "static";
-  return "unknown";
+async function scoreCandidate(baseDir: string, candidateRelative: string): Promise<ProjectRootCandidate | null> {
+  const candidatePath = candidateRelative === "." ? baseDir : join(baseDir, candidateRelative);
+  const detected = await detectFramework(candidatePath);
+  if (!(await fileExists(join(candidatePath, "package.json")))) {
+    return null;
+  }
+
+  let score = 1;
+  if (detected.hasBuildScript) score += 2;
+  if (detected.hasStartScript) score += 2;
+  if (detected.framework === "next.js" || detected.framework === "nuxt" || detected.framework === "sveltekit") {
+    score += 4;
+  } else if (detected.framework === "vue" || detected.framework === "react") {
+    score += 3;
+  } else if (detected.framework === "node-api") {
+    score += 3;
+  } else if (detected.framework === "static") {
+    score += 2;
+  }
+
+  return {
+    dir: candidatePath,
+    framework: detected.framework,
+    hasBuildScript: detected.hasBuildScript,
+    hasStartScript: detected.hasStartScript,
+    runtimeHint: detected.runtimeHint,
+    score,
+  };
+}
+
+async function findProjectRoot(repoDir: string, preferredRoot = ""): Promise<ProjectRootCandidate | null> {
+  const candidates: ProjectRootCandidate[] = [];
+  const seen = new Set<string>();
+  const candidateRoots = [
+    preferredRoot.trim().length > 0 ? preferredRoot : null,
+    ...CANDIDATE_DIRS,
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  for (const candidate of candidateRoots) {
+    const normalizedCandidate = normalizeRelativePath(candidate);
+    if (seen.has(normalizedCandidate)) continue;
+    seen.add(normalizedCandidate);
+    const result = await scoreCandidate(repoDir, candidate);
+    if (!result) continue;
+
+    if (preferredRoot && normalizedCandidate === normalizeRelativePath(preferredRoot)) {
+      result.score += 1;
+    }
+    candidates.push(result);
+  }
+
+  if (candidates.length === 0) return null;
+  candidates.sort((left, right) => right.score - left.score);
+  return candidates[0];
+}
+
+async function detectPackageManager(buildRoot: string, repoDir: string): Promise<{
+  installCwd: string;
+  packageManager: PackageManager;
+}> {
+  const installRoots = [buildRoot];
+  if (buildRoot !== repoDir) {
+    installRoots.push(repoDir);
+  }
+
+  for (const installRoot of installRoots) {
+    if (await fileExists(join(installRoot, "pnpm-lock.yaml"))) {
+      return { installCwd: installRoot, packageManager: "pnpm" };
+    }
+    if (await fileExists(join(installRoot, "yarn.lock"))) {
+      return { installCwd: installRoot, packageManager: "yarn" };
+    }
+  }
+
+  return { installCwd: buildRoot, packageManager: "npm" };
+}
+
+function getInstallCommand(packageManager: PackageManager): string {
+  if (packageManager === "pnpm") return "pnpm install";
+  if (packageManager === "yarn") return "yarn install";
+  return "npm install --prefer-offline --no-audit --no-fund";
+}
+
+function getBuildCommand(packageManager: PackageManager, hasBuildScript: boolean): string | null {
+  if (!hasBuildScript) {
+    return null;
+  }
+
+  if (packageManager === "yarn") return "yarn run build";
+  return `${packageManager} run build`;
+}
+
+async function resolveDeploymentPlan(repoDir: string, preferredRoot = ""): Promise<ResolvedDeploymentPlan | null> {
+  const candidate = await findProjectRoot(repoDir, preferredRoot);
+  if (!candidate) {
+    return null;
+  }
+
+  const buildRoot = candidate.dir;
+  const packageManager = await detectPackageManager(buildRoot, repoDir);
+
+  return {
+    buildCommand: getBuildCommand(packageManager.packageManager, candidate.hasBuildScript),
+    buildRoot,
+    buildRootRelative: toLogRelativePath(repoDir, buildRoot),
+    framework: candidate.framework,
+    hasBuildScript: candidate.hasBuildScript,
+    installCommand: getInstallCommand(packageManager.packageManager),
+    installCwd: packageManager.installCwd,
+    installCwdRelative: toLogRelativePath(repoDir, packageManager.installCwd),
+    packageManager: packageManager.packageManager,
+    rootDirectory: toStoredRelativePath(repoDir, buildRoot),
+    runtimeHint: candidate.runtimeHint,
+  };
 }
 
 function parseGitHubUrl(repoUrl: string): { owner: string; repo: string } | null {
@@ -296,8 +552,18 @@ async function downloadAndExtract(
   curlArgs.push("-o", tarPath, url);
 
   try {
-    await runCommand(`curl ${curlArgs.join(" ")}`, destDir, deploymentId, stepOrderRef);
-    await runCommand(`tar -xzf ${tarPath} --strip-components=1 -C ${destDir}`, destDir, deploymentId, stepOrderRef);
+    await runCommand(
+      { cmd: "curl", args: curlArgs, shell: false },
+      destDir,
+      deploymentId,
+      stepOrderRef,
+    );
+    await runCommand(
+      { cmd: "tar", args: ["-xzf", tarPath, "--strip-components=1", "-C", destDir], shell: false },
+      destDir,
+      deploymentId,
+      stepOrderRef,
+    );
     return true;
   } finally {
     await rm(tarPath, { force: true }).catch(() => {});
@@ -439,6 +705,7 @@ async function resolveStaticOutputDir(
   buildRoot: string,
   frameworkType: FrameworkType,
   explicitOutputDirectory: string | null,
+  buildWasRun: boolean,
 ): Promise<{ artifactSourcePath: string; outputDirectory: string | null }> {
   if (explicitOutputDirectory) {
     const explicitPath = join(buildRoot, explicitOutputDirectory);
@@ -455,7 +722,11 @@ async function resolveStaticOutputDir(
     }
   }
 
-  return { artifactSourcePath: buildRoot, outputDirectory: null };
+  if (!buildWasRun && (await fileExists(join(buildRoot, "index.html")))) {
+    return { artifactSourcePath: buildRoot, outputDirectory: null };
+  }
+
+  throw new Error("Could not determine static build output");
 }
 
 async function writeBuildMetadata(buildRoot: string, runtimeKind: RuntimeKind) {
@@ -498,16 +769,7 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     return new RegExp(`^${escaped}$`).test(branch);
   });
 
-  const installCommand =
-    matchingRule?.installCommandOverride ||
-    project.installCommand ||
-    "npm install --prefer-offline --no-audit --no-fund";
-  const explicitBuildCommand =
-    matchingRule?.buildCommandOverride ??
-    project.buildCommand ??
-    null;
-  const buildCommand = explicitBuildCommand || "npm run build";
-  const configuredRoot = project.rootDirectory || "";
+  const preferredRoot = project.rootDirectory || "";
 
   const stepOrderRef = { value: 0 };
   const startedAt = Date.now();
@@ -553,41 +815,53 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     await setStatus(deploymentId, "detecting");
     await log("State transition: detecting");
 
-    let buildRoot = configuredRoot ? join(workDir, configuredRoot) : workDir;
-    if (configuredRoot && !(await fileExists(join(buildRoot, "package.json")))) {
-      failureReason = `package.json not found in configured root directory '${configuredRoot}'`;
+    const resolvedPlan = await resolveDeploymentPlan(workDir, preferredRoot);
+    if (!resolvedPlan) {
+      failureReason = "No package.json found in repository root or known app directories";
       throw new Error(failureReason);
     }
 
-    if (!configuredRoot) {
-      const detected = await findProjectRoot(workDir);
-      if (!detected) {
-        failureReason = "No package.json found in repository root or known app directories";
-        throw new Error(failureReason);
-      }
-      buildRoot = detected.dir;
-      await log(`Detected project root: ${relative(workDir, buildRoot) || "."}`);
-    }
+    const buildRoot = resolvedPlan.buildRoot;
+    const frameworkType = resolvedPlan.framework;
+    const baseInstallCommand = resolvedPlan.installCommand;
+    const detectedBuildCommand = resolvedPlan.buildCommand;
+    const installCommand = matchingRule?.installCommandOverride || baseInstallCommand;
+    const explicitBuildCommand =
+      matchingRule?.buildCommandOverride ??
+      detectedBuildCommand;
+    const buildCommand = explicitBuildCommand ?? "";
+    let runtimeKind: RuntimeKind | null = resolvedPlan.runtimeHint;
 
-    if (!(await fileExists(join(buildRoot, "package.json")))) {
-      failureReason = "package.json not found in the selected project root";
-      throw new Error(failureReason);
-    }
-
-    const detected = await detectFramework(buildRoot);
-    const configuredFramework = normalizeFrameworkName(project.framework);
-    const frameworkType = configuredFramework !== "unknown" ? configuredFramework : detected.framework;
-    const runtimeKind: RuntimeKind = frameworkType === "node-api" ? "node-api" : "static";
-
+    await log(`Selected project root: ${resolvedPlan.buildRootRelative}`);
+    await log(`Selected package manager: ${resolvedPlan.packageManager}`);
+    await log(`Selected install root: ${resolvedPlan.installCwdRelative}`);
     await log(`Resolved framework: ${frameworkType}`);
-    await log(`Runtime kind: ${runtimeKind}`);
+    await log(`Runtime hint: ${runtimeKind ?? "ambiguous"}`);
+    await log(`Resolved install command: ${installCommand}`);
+    await log(`Resolved build command: ${explicitBuildCommand ?? "none"}`);
+
+    await db
+      .update(projectsTable)
+      .set({
+        buildCommand: detectedBuildCommand,
+        framework: frameworkType,
+        installCommand: baseInstallCommand,
+        repoBranch: branch,
+        rootDirectory: resolvedPlan.rootDirectory,
+      })
+      .where(eq(projectsTable.id, project.id));
 
     await setStatus(deploymentId, "installing");
     await log("State transition: installing");
     await log(`Executing install command: ${installCommand}`);
 
     try {
-      await runCommand(installCommand, buildRoot, deploymentId, stepOrderRef);
+      await runInstallCommandWithRetry(
+        installCommand,
+        resolvedPlan.installCwd,
+        deploymentId,
+        stepOrderRef,
+      );
     } catch (error) {
       failureReason = `Install failed: ${(error as Error).message}`;
       throw error;
@@ -596,7 +870,7 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     const shouldRunBuild =
       explicitBuildCommand !== null
         ? explicitBuildCommand.trim().length > 0
-        : detected.hasBuildScript || FRAMEWORKS_REQUIRING_BUILD.includes(frameworkType);
+        : resolvedPlan.hasBuildScript || FRAMEWORKS_REQUIRING_BUILD.includes(frameworkType);
 
     let buildWasRun = false;
     if (shouldRunBuild) {
@@ -621,16 +895,55 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     let artifactSourcePath = buildRoot;
     let outputDirectory: string | null = null;
 
-    if (runtimeKind === "static") {
-      try {
-        const resolved = await resolveStaticOutputDir(buildRoot, frameworkType, deployment.outputDirectory);
-        artifactSourcePath = resolved.artifactSourcePath;
-        outputDirectory = resolved.outputDirectory;
-      } catch (error) {
-        failureReason = `Artifact invalid: ${(error as Error).message}`;
-        throw error;
+    if (runtimeKind === "node-api") {
+      await log("Runtime kind: node-api");
+    } else {
+      if (runtimeKind === null) {
+        try {
+          await detectNodeStartCommand(buildRoot);
+          runtimeKind = "node-api";
+        } catch {
+          runtimeKind = null;
+        }
+      }
+
+      if (runtimeKind === null) {
+        try {
+          const resolved = await resolveStaticOutputDir(
+            buildRoot,
+            frameworkType,
+            deployment.outputDirectory,
+            buildWasRun,
+          );
+          artifactSourcePath = resolved.artifactSourcePath;
+          outputDirectory = resolved.outputDirectory;
+          runtimeKind = "static";
+        } catch {
+          runtimeKind = null;
+        }
+      } else if (runtimeKind === "static") {
+        try {
+          const resolved = await resolveStaticOutputDir(
+            buildRoot,
+            frameworkType,
+            deployment.outputDirectory,
+            buildWasRun,
+          );
+          artifactSourcePath = resolved.artifactSourcePath;
+          outputDirectory = resolved.outputDirectory;
+        } catch (error) {
+          failureReason = `Artifact invalid: ${(error as Error).message}`;
+          throw error;
+        }
       }
     }
+
+    if (runtimeKind === null) {
+      failureReason = "Could not determine whether deployment should run as a Node service or static artifact";
+      throw new Error(failureReason);
+    }
+
+    await log(`Runtime kind: ${runtimeKind}`);
 
     await writeBuildMetadata(buildRoot, runtimeKind);
 
@@ -643,7 +956,7 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
       sourcePath: artifactSourcePath,
       metadata: {
         runtimeKind,
-        buildCommand: buildCommand || null,
+        buildCommand: buildWasRun ? buildCommand || null : null,
         installCommand,
         outputDirectory,
       },

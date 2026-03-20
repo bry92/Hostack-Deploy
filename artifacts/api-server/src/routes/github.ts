@@ -2,10 +2,11 @@ import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { integrationsTable, projectsTable, deploymentsTable } from "@workspace/db/schema";
+import { enqueueJob } from "@workspace/queue";
 import { eq, and } from "drizzle-orm";
-import { determineExecutionMode, startDeploymentExecution } from "../services/deploymentExecutor.js";
+import { determineExecutionMode } from "../services/deploymentExecutor.js";
 import { APP_URL } from "../lib/auth.js";
-import { decryptMetadata, decryptString } from "../lib/secrets.js";
+import { decryptMetadata, decryptString, encryptString } from "../lib/secrets.js";
 
 const router: IRouter = Router();
 
@@ -335,7 +336,10 @@ router.post(
           })
           .returning();
 
-        startDeploymentExecution(deployment.id).catch(console.error);
+        enqueueJob(db, {
+          type: "build_requested",
+          payload: { deploymentId: deployment.id },
+        }).catch(console.error);
       }
     } else if (event === "pull_request") {
       const action = payload.action;
@@ -366,7 +370,10 @@ router.post(
           })
           .returning();
 
-        startDeploymentExecution(deployment.id).catch(console.error);
+        enqueueJob(db, {
+          type: "build_requested",
+          payload: { deploymentId: deployment.id },
+        }).catch(console.error);
       }
     }
   },

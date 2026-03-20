@@ -1,38 +1,23 @@
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
+import { enqueueJob } from "@workspace/queue";
 import { and, eq } from "drizzle-orm";
 import { IS_FALLBACK } from "../lib/runtimeMode.ts";
 
 const router: IRouter = Router();
-const NEXT_CONFIG_FILES = new Set([
-  "next.config.js",
-  "next.config.mjs",
-  "next.config.ts",
-  "next.config.cjs",
-]);
-const VITE_CONFIG_FILES = new Set([
-  "vite.config.js",
-  "vite.config.mjs",
-  "vite.config.ts",
-  "vite.config.cjs",
-]);
 
 type GitHubRepoInfo = {
   default_branch?: string;
 };
 
-type GitHubContentEntry = {
-  name?: string;
-  type?: string;
-  content?: string;
-  encoding?: string;
-};
-
-type RepoDetection = {
-  buildCommand: string | null;
-  framework: string;
-  installCommand: string | null;
-  repoBranch: string;
-  rootDirectory: string;
+type RepoProjectResponse = {
+  deployment?: {
+    id: string;
+    projectId: string;
+  } | null;
+  id: string;
+  name: string;
+  repoName?: string | null;
+  repoOwner?: string | null;
 };
 
 function getProjectName(req: Request): string | null {
@@ -117,141 +102,13 @@ async function fetchGitHubJson<T>(path: string, accessToken: string): Promise<T 
   return (await response.json()) as T;
 }
 
-function parseGitHubTextFile(entry: GitHubContentEntry | null): string | null {
-  if (!entry?.content || entry.encoding !== "base64") {
-    return null;
-  }
-
-  try {
-    return Buffer.from(entry.content, "base64").toString("utf8");
-  } catch {
-    return null;
-  }
-}
-
-function detectFrameworkFromPackageJson(packageJson: string | null): {
-  buildCommand: string | null;
-  framework: string;
-} {
-  if (!packageJson) {
-    return {
-      buildCommand: null,
-      framework: "node-api",
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(packageJson) as {
-      dependencies?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-      scripts?: Record<string, string>;
-    };
-    const deps = {
-      ...(parsed.dependencies ?? {}),
-      ...(parsed.devDependencies ?? {}),
-    };
-    const buildCommand = typeof parsed.scripts?.build === "string" ? "npm run build" : null;
-
-    if (deps.next) return { framework: "next.js", buildCommand };
-    if (deps.vue) return { framework: "vue", buildCommand };
-    if (deps["@sveltejs/kit"]) return { framework: "sveltekit", buildCommand };
-    if (deps.react) return { framework: "react", buildCommand };
-    if (deps.vite) return { framework: "vite", buildCommand };
-
-    return {
-      buildCommand,
-      framework: "node-api",
-    };
-  } catch {
-    return {
-      buildCommand: null,
-      framework: "node-api",
-    };
-  }
-}
-
-function detectInstallCommand(names: Set<string>): string {
-  if (names.has("pnpm-lock.yaml")) {
-    return "pnpm install";
-  }
-
-  if (names.has("yarn.lock")) {
-    return "yarn install";
-  }
-
-  return "npm install";
-}
-
-async function detectRepoConfig(
+async function getRepoDefaultBranch(
   owner: string,
   repoName: string,
   accessToken: string,
-): Promise<RepoDetection> {
+): Promise<string> {
   const repoInfo = await fetchGitHubJson<GitHubRepoInfo>(`repos/${owner}/${repoName}`, accessToken);
-  const repoBranch = repoInfo?.default_branch?.trim() || "main";
-  const contents =
-    (await fetchGitHubJson<GitHubContentEntry[]>(
-      `repos/${owner}/${repoName}/contents?ref=${encodeURIComponent(repoBranch)}`,
-      accessToken,
-    )) ?? [];
-
-  const names = new Set(
-    contents
-      .map((entry) => entry.name)
-      .filter((name): name is string => typeof name === "string"),
-  );
-  const installCommand = detectInstallCommand(names);
-
-  const packageJsonEntry = contents.find((entry) => entry.name === "package.json" && entry.type === "file");
-  const packageJson =
-    packageJsonEntry == null
-      ? null
-      : parseGitHubTextFile(
-          await fetchGitHubJson<GitHubContentEntry>(
-            `repos/${owner}/${repoName}/contents/package.json?ref=${encodeURIComponent(repoBranch)}`,
-            accessToken,
-          ),
-        );
-
-  if ([...NEXT_CONFIG_FILES].some((fileName) => names.has(fileName))) {
-    return {
-      framework: "next.js",
-      buildCommand: "npm run build",
-      installCommand,
-      repoBranch,
-      rootDirectory: "",
-    };
-  }
-
-  if ([...VITE_CONFIG_FILES].some((fileName) => names.has(fileName))) {
-    const fromPackage = detectFrameworkFromPackageJson(packageJson);
-    return {
-      framework: fromPackage.framework === "node-api" ? "vite" : fromPackage.framework,
-      buildCommand: fromPackage.buildCommand ?? "npm run build",
-      installCommand,
-      repoBranch,
-      rootDirectory: "",
-    };
-  }
-
-  if (names.has("package.json")) {
-    const fromPackage = detectFrameworkFromPackageJson(packageJson);
-    return {
-      framework: fromPackage.framework,
-      buildCommand: fromPackage.buildCommand,
-      installCommand,
-      repoBranch,
-      rootDirectory: "",
-    };
-  }
-
-  return {
-    framework: "static",
-    buildCommand: null,
-    installCommand: null,
-    repoBranch,
-    rootDirectory: "",
-  };
+  return repoInfo?.default_branch?.trim() || "main";
 }
 
 router.get("/projects", async (req: Request, res: Response, next: NextFunction) => {
@@ -338,11 +195,12 @@ router.post("/projects/from-repo", async (req: Request, res: Response) => {
 
   if (IS_FALLBACK) {
     res.status(201).json({
+      deployment: null,
       id: "fallback-repo-project",
       name: repoName,
       repoOwner: owner,
       repoName,
-    });
+    } satisfies RepoProjectResponse);
     return;
   }
 
@@ -358,9 +216,12 @@ router.post("/projects/from-repo", async (req: Request, res: Response) => {
       return;
     }
 
-    const detected = await detectRepoConfig(owner, repoName, accessToken);
-    const { db } = await import("@workspace/db");
-    const { projectsTable } = await import("@workspace/db/schema");
+    const repoBranch = await getRepoDefaultBranch(owner, repoName, accessToken);
+    const [{ db }, { deploymentsTable, projectsTable }, deploymentExecutor] = await Promise.all([
+      import("@workspace/db"),
+      import("@workspace/db/schema"),
+      import("../services/deploymentExecutor.js"),
+    ]);
 
     const [created] = await db
       .insert(projectsTable)
@@ -368,19 +229,45 @@ router.post("/projects/from-repo", async (req: Request, res: Response) => {
         userId: req.user.id,
         name: repoName,
         slug: slugify(repoName),
-        framework: detected.framework,
+        framework: "unknown",
         repoUrl: `https://github.com/${repoFullName}`,
         repoOwner: owner,
         repoName,
-        repoBranch: detected.repoBranch,
-        rootDirectory: detected.rootDirectory,
-        buildCommand: detected.buildCommand,
-        installCommand: detected.installCommand,
+        repoBranch: repoBranch,
+        rootDirectory: "",
+        buildCommand: null,
+        installCommand: null,
         autoDeploy: false,
       })
       .returning();
 
-    res.status(201).json(created);
+    const executionMode = deploymentExecutor.determineExecutionMode(created);
+    const [deployment] = await db
+      .insert(deploymentsTable)
+      .values({
+        projectId: created.id,
+        status: "queued",
+        environment: "production",
+        triggerType: "api",
+        executionMode,
+        simulated: executionMode === "simulated",
+        branch: created.repoBranch || "main",
+        commitMessage: `Initial deploy for ${repoFullName}`,
+      })
+      .returning({
+        id: deploymentsTable.id,
+        projectId: deploymentsTable.projectId,
+      });
+
+    enqueueJob(db, {
+      type: "build_requested",
+      payload: { deploymentId: deployment.id },
+    }).catch(console.error);
+
+    res.status(201).json({
+      ...created,
+      deployment,
+    } satisfies RepoProjectResponse);
   } catch (error: any) {
     res.status(500).json({
       error: "failed_to_create_from_repo",

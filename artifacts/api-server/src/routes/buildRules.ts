@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { buildRulesTable, deployWebhooksTable, deploymentsTable, projectsTable } from "@workspace/db/schema";
+import { enqueueJob } from "@workspace/queue";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { determineExecutionMode, startDeploymentExecution } from "../services/deploymentExecutor.js";
+import { determineExecutionMode } from "../services/deploymentExecutor.js";
 
 const router: IRouter = Router();
 
@@ -337,7 +338,10 @@ router.post("/webhooks/:projectId/:secret", async (req, res) => {
     })
     .returning();
 
-  startDeploymentExecution(deployment.id).catch(console.error);
+  enqueueJob(db, {
+    type: "build_requested",
+    payload: { deploymentId: deployment.id },
+  }).catch(console.error);
 
   res.status(201).json({ deployment });
 });
