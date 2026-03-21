@@ -1,14 +1,42 @@
 import { hostname } from "node:os";
 import { pathToFileURL } from "node:url";
 import { db } from "@workspace/db";
-import { claimNextJob, completeJob, failJob, type Job } from "@workspace/queue";
+import {
+  claimNextJob,
+  completeJob,
+  DEFAULT_JOB_LEASE_MS,
+  failJob,
+  recoverStaleJobs,
+  type Job,
+} from "@workspace/queue";
 import { startDeploymentExecution } from "../../api-server/src/services/deploymentExecutor.ts";
 
 const POLL_INTERVAL_MS = 1000;
+const DEFAULT_STALE_SWEEP_INTERVAL_MS = 30 * 1000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function parsePositiveIntEnv(name: string, fallback: number): number {
+  const rawValue = process.env[name]?.trim();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(rawValue, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Invalid ${name} value: "${rawValue}"`);
+  }
+
+  return parsed;
+}
+
+const JOB_LEASE_MS = parsePositiveIntEnv("HOSTACK_JOB_LEASE_MS", DEFAULT_JOB_LEASE_MS);
+const STALE_SWEEP_INTERVAL_MS = parsePositiveIntEnv(
+  "HOSTACK_STALE_SWEEP_INTERVAL_MS",
+  DEFAULT_STALE_SWEEP_INTERVAL_MS,
+);
 
 function getWorkerId(): string {
   const configuredWorkerId = process.env.HOSTACK_WORKER_ID?.trim();
@@ -53,10 +81,23 @@ async function processJob(job: Job): Promise<void> {
 }
 
 export async function runWorkerLoop(workerId = getWorkerId()): Promise<never> {
-  console.log(`[worker] starting worker ${workerId}`);
+  console.log(
+    `[worker] starting worker ${workerId} (lease ${JOB_LEASE_MS}ms, sweep ${STALE_SWEEP_INTERVAL_MS}ms)`,
+  );
+
+  let lastStaleSweep = 0;
 
   while (true) {
     try {
+      const now = Date.now();
+      if (now - lastStaleSweep >= STALE_SWEEP_INTERVAL_MS) {
+        const recovered = await recoverStaleJobs(db, JOB_LEASE_MS);
+        if (recovered > 0) {
+          console.warn(`[worker] requeued ${recovered} stale job(s)`);
+        }
+        lastStaleSweep = now;
+      }
+
       const job = await claimNextJob(db, workerId);
 
       if (!job) {

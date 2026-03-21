@@ -4,6 +4,36 @@ import { and, asc, eq, isNull, lte, sql } from "drizzle-orm";
 import type { Job } from "./types.ts";
 
 type QueueDb = typeof defaultDb;
+export const DEFAULT_JOB_LEASE_MS = 5 * 60 * 1000;
+
+const STALE_JOB_MESSAGE =
+  "Worker lease expired while processing; requeued automatically.";
+
+export async function recoverStaleJobs(
+  db: QueueDb,
+  leaseMs = DEFAULT_JOB_LEASE_MS,
+): Promise<number> {
+  const expiredBefore = new Date(Date.now() - leaseMs);
+
+  const recovered = await db
+    .update(jobsTable)
+    .set({
+      status: "queued",
+      lockedAt: null,
+      lockedBy: null,
+      lastError: STALE_JOB_MESSAGE,
+      availableAt: new Date(),
+    })
+    .where(
+      and(
+        eq(jobsTable.status, "processing"),
+        lte(jobsTable.lockedAt, expiredBefore),
+      ),
+    )
+    .returning({ id: jobsTable.id });
+
+  return recovered.length;
+}
 
 export async function claimNextJob(
   db: QueueDb,

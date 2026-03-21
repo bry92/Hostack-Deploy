@@ -9,6 +9,7 @@
     "dev": "pnpm --filter @workspace/scripts dev",
     "dev:frontend": "pnpm --filter @workspace/hostack dev",
     "dev:api": "pnpm --filter @workspace/api-server dev",
+    "dev:worker": "pnpm --filter @workspace/worker dev",
     "smoke": "pnpm --filter @workspace/scripts smoke",
     "lint": "pnpm -r --filter \"./artifacts/**\" --filter \"./lib/**\" --filter \"./scripts\" --if-present lint",
     "typecheck:libs": "tsc --build",
