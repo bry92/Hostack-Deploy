@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@workspace/auth-web";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import About from "@/pages/about";
+import Blog from "@/pages/blog";
+import Careers from "@/pages/careers";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
@@ -15,6 +18,8 @@ import Settings from "@/pages/settings";
 import Integrations from "@/pages/integrations";
 import Logs from "@/pages/logs";
 import Metrics from "@/pages/metrics";
+import Privacy from "@/pages/privacy";
+import Terms from "@/pages/terms";
 import AuthCallback from "@/pages/auth-callback";
 import { Loader2 } from "lucide-react";
 
@@ -49,6 +54,11 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/about" component={About} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/careers" component={Careers} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
       <Route path="/projects">{() => <ProtectedRoute component={Projects} />}</Route>
       <Route path="/projects/:id">{() => <ProtectedRoute component={ProjectDetail} />}</Route>

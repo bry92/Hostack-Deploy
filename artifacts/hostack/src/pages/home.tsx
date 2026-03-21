@@ -1,6 +1,7 @@
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@workspace/auth-web";
 import { Button } from "@/components/ui/button";
+import { CHANGELOG_URL, DEVTO_ARTICLE_URL, DOCS_URL, PUBLIC_ROUTES, REPO_URL, STATUS_URL } from "@/lib/site-links";
 import { motion } from "framer-motion";
 import {
   Boxes,
@@ -22,28 +23,29 @@ import {
   BookOpen,
   Activity,
 } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DEPLOY_LINES = [
   { text: "$ hostack deploy --prod", delay: 0, color: "text-green-400" },
-  { text: "⠋ Connecting to repository...", delay: 600, color: "text-muted-foreground" },
-  { text: "✔ Repository connected (main @ a3f29c1)", delay: 1200, color: "text-cyan-400" },
-  { text: "⠋ AI Copilot analyzing build configuration...", delay: 1800, color: "text-purple-400" },
-  { text: '✔ Copilot: Detected Next.js 14 — recommending "static export"', delay: 2600, color: "text-purple-400" },
-  { text: "✔ Copilot: Auto-configured environment variables (3 secrets)", delay: 3200, color: "text-purple-400" },
-  { text: "⠋ Installing dependencies...", delay: 3800, color: "text-muted-foreground" },
-  { text: "✔ Dependencies installed (2.1s)", delay: 4600, color: "text-cyan-400" },
-  { text: "⠋ Building project...", delay: 5000, color: "text-muted-foreground" },
-  { text: "✔ Build completed (4.7s) — 12 pages, 340KB gzip", delay: 6200, color: "text-cyan-400" },
-  { text: "⠋ Deploying to edge network...", delay: 6800, color: "text-muted-foreground" },
-  { text: "✔ Deployed to 42 edge locations", delay: 7800, color: "text-green-400" },
+  { text: "[~] Connecting to repository...", delay: 600, color: "text-muted-foreground" },
+  { text: "[ok] Repository connected (main @ a3f29c1)", delay: 1200, color: "text-cyan-400" },
+  { text: "[~] AI Copilot analyzing build configuration...", delay: 1800, color: "text-purple-400" },
+  { text: '[ok] Copilot: Detected Next.js 14 - recommending "static export"', delay: 2600, color: "text-purple-400" },
+  { text: "[ok] Copilot: Auto-configured environment variables (3 secrets)", delay: 3200, color: "text-purple-400" },
+  { text: "[~] Installing dependencies...", delay: 3800, color: "text-muted-foreground" },
+  { text: "[ok] Dependencies installed (2.1s)", delay: 4600, color: "text-cyan-400" },
+  { text: "[~] Building project...", delay: 5000, color: "text-muted-foreground" },
+  { text: "[ok] Build completed (4.7s) - 12 pages, 340KB gzip", delay: 6200, color: "text-cyan-400" },
+  { text: "[~] Deploying to edge network...", delay: 6800, color: "text-muted-foreground" },
+  { text: "[ok] Deployed to 42 edge locations", delay: 7800, color: "text-green-400" },
   { text: "", delay: 8200, color: "" },
-  { text: "🚀 Live at https://myapp.hostack.dev", delay: 8400, color: "text-green-400 font-bold" },
+  { text: "Live at https://myapp.hostack.dev", delay: 8400, color: "text-green-400 font-bold" },
   { text: "   Total time: 11.2s", delay: 8800, color: "text-muted-foreground" },
 ];
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
+
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
@@ -51,6 +53,7 @@ function useReducedMotion() {
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+
   return reduced;
 }
 
@@ -88,7 +91,9 @@ function FakeTerminal() {
 
     return () => {
       timeouts.forEach(clearTimeout);
-      if (cycleTimeout.current) clearTimeout(cycleTimeout.current);
+      if (cycleTimeout.current) {
+        clearTimeout(cycleTimeout.current);
+      }
     };
   }, [reducedMotion]);
 
@@ -99,12 +104,16 @@ function FakeTerminal() {
   }, [visibleLines]);
 
   return (
-    <div role="img" aria-label="Simulated deployment terminal showing AI Copilot analyzing and deploying a Next.js project in 11 seconds" className="w-full max-w-2xl mx-auto rounded-xl border border-white/10 bg-black/60 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden">
+    <div
+      role="img"
+      aria-label="Simulated deployment terminal showing AI Copilot analyzing and deploying a Next.js project in 11 seconds"
+      className="w-full max-w-2xl mx-auto rounded-xl border border-white/10 bg-black/60 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden"
+    >
       <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border-b border-white/10">
         <div className="w-3 h-3 rounded-full bg-red-500/80" />
         <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
         <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        <span className="ml-2 text-xs text-muted-foreground font-mono">hostack — deploy</span>
+        <span className="ml-2 text-xs text-muted-foreground font-mono">hostack - deploy</span>
       </div>
       <div ref={terminalRef} className="p-4 font-mono text-sm leading-relaxed h-[320px] overflow-y-auto scrollbar-thin">
         {DEPLOY_LINES.slice(0, visibleLines).map((line, i) => (
@@ -160,7 +169,7 @@ const FEATURES = [
   {
     icon: RotateCcw,
     title: "Instant Rollbacks",
-    description: "Roll back to any previous deployment in one click — zero downtime.",
+    description: "Roll back to any previous deployment in one click - zero downtime.",
   },
   {
     icon: Bell,
@@ -185,7 +194,7 @@ const FEATURES = [
   {
     icon: GitBranch,
     title: "Preview Deployments",
-    description: "Every pull request gets its own preview URL — share and review before merging.",
+    description: "Every pull request gets its own preview URL - share and review before merging.",
   },
   {
     icon: Terminal,
@@ -220,7 +229,9 @@ export default function Home() {
   const { isAuthenticated, isLoading, login, isFallbackMode } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (isLoading) return <div className="min-h-screen bg-background" />;
+  if (isLoading) {
+    return <div className="min-h-screen bg-background" />;
+  }
 
   const handleCTA = () => {
     if (isAuthenticated) {
@@ -276,7 +287,7 @@ export default function Home() {
             </div>
           </section>
         )}
-        {/* Hero */}
+
         <section className="pt-24 md:pt-32 pb-8 px-6 text-center max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-sm text-purple-300 mb-8">
@@ -292,20 +303,21 @@ export default function Home() {
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
               Hostack&apos;s AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
-              Connect, deploy, done — faster than any other platform.
+              Connect, deploy, done - faster than any other platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" onClick={handleCTA} className="h-12 px-8 text-base shadow-xl shadow-primary/25 w-full sm:w-auto">
                 {isAuthenticated ? "Enter Dashboard" : "Start Deploying Free"} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-white/5 border-white/10 text-white hover:bg-white/10 w-full sm:w-auto">
-                Read the Docs
+              <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base bg-white/5 border-white/10 text-white hover:bg-white/10 w-full sm:w-auto">
+                <a href={DOCS_URL} target="_blank" rel="noreferrer">
+                  Read the Docs
+                </a>
               </Button>
             </div>
           </motion.div>
         </section>
 
-        {/* Fake Terminal */}
         <section className="pb-24 px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -316,7 +328,6 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* How it Works */}
         <section id="how-it-works" className="py-24 px-6 border-y border-white/5">
           <div className="max-w-5xl mx-auto">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -348,13 +359,12 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Grid */}
         <section id="features" className="py-24 px-6 bg-white/[0.02]">
           <div className="max-w-7xl mx-auto">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Everything You Need to Ship</h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                From AI-powered configuration to global edge deployments — all in one platform.
+                From AI-powered configuration to global edge deployments - all in one platform.
               </p>
             </motion.div>
             <motion.div
@@ -392,7 +402,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Comparison Table */}
         <section id="compare" className="py-24 px-6 border-t border-white/5">
           <div className="max-w-4xl mx-auto">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
@@ -440,7 +449,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Band */}
         <section className="py-20 px-6 bg-gradient-to-r from-primary/10 via-purple-500/10 to-cyan-500/10 border-y border-white/5">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to deploy smarter?</h2>
@@ -448,13 +456,12 @@ export default function Home() {
               Join developers who ship faster with AI-powered deployments. Free forever for personal projects.
             </p>
             <Button size="lg" onClick={handleCTA} className="h-12 px-10 text-base shadow-xl shadow-primary/25">
-              {isAuthenticated ? "Go to Dashboard" : "Get Started — It's Free"} <ArrowRight className="w-4 h-4 ml-2" />
+              {isAuthenticated ? "Go to Dashboard" : "Get Started - It's Free"} <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 bg-background/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
@@ -473,33 +480,33 @@ export default function Home() {
               <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#compare" className="hover:text-white transition-colors">Compare</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Changelog</a></li>
+                <li><a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a></li>
+                <li><a href="#compare" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Changelog</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Docs</a></li>
-                <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1.5"><Github className="w-3.5 h-3.5" /> GitHub</a></li>
-                <li><a href="#" className="hover:text-white transition-colors flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Status</a></li>
+                <li><a href={DOCS_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Docs</a></li>
+                <li><a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5"><Github className="w-3.5 h-3.5" /> GitHub</a></li>
+                <li><a href={STATUS_URL} className="hover:text-white transition-colors flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Status</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                <li><Link href={PUBLIC_ROUTES.about} className="hover:text-white transition-colors">About</Link></li>
+                <li><a href={DEVTO_ARTICLE_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Blog</a></li>
+                <li><Link href={PUBLIC_ROUTES.careers} className="hover:text-white transition-colors">Careers</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Hostack. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
+              <Link href={PUBLIC_ROUTES.privacy} className="hover:text-white transition-colors">Privacy</Link>
+              <Link href={PUBLIC_ROUTES.terms} className="hover:text-white transition-colors">Terms</Link>
             </div>
           </div>
         </div>
