@@ -1,6 +1,6 @@
-import { type ComponentType } from "react";
+import { type ComponentType, useEffect, useRef } from "react";
 import { Switch, Route, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@workspace/auth-web";
@@ -76,10 +76,37 @@ function Router() {
   );
 }
 
+function AuthQueryReset() {
+  const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const previousIdentityRef = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    const nextIdentity = isAuthenticated ? (user?.id ?? "__authenticated__") : null;
+
+    if (previousIdentityRef.current === undefined) {
+      previousIdentityRef.current = nextIdentity;
+      return;
+    }
+
+    if (previousIdentityRef.current !== nextIdentity) {
+      queryClient.clear();
+      previousIdentityRef.current = nextIdentity;
+    }
+  }, [isAuthenticated, isLoading, queryClient, user?.id]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AuthQueryReset />
         <TooltipProvider>
           <Router />
           <Toaster />
