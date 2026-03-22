@@ -162,6 +162,15 @@ type CommandInput =
       shell?: boolean;
     };
 
+function redactCommandForLogs(value: string): string {
+  return value
+    .replace(/(Authorization:\s*Bearer\s+)(\S+)/gi, "$1[REDACTED]")
+    .replace(/(Authorization:\s*Basic\s+)(\S+)/gi, "$1[REDACTED]")
+    .replace(/(client_secret=)([^&\s]+)/gi, "$1[REDACTED]")
+    .replace(/(access_token=)([^&\s]+)/gi, "$1[REDACTED]")
+    .replace(/(token=)([^&\s]+)/gi, "$1[REDACTED]");
+}
+
 function runCommand(
   command: CommandInput,
   cwd: string,
@@ -182,6 +191,9 @@ function runCommand(
           cmd: command.cmd,
           shell: command.shell ?? false,
         };
+  const commandForLogs = redactCommandForLogs(
+    typeof command === "string" ? command : `${parsed.cmd} ${parsed.args.join(" ")}`,
+  );
 
   return new Promise((resolve, reject) => {
     const baseEnv = { ...process.env };
@@ -249,11 +261,7 @@ function runCommand(
       }
       reject(
         new Error(
-          `Command '${
-            typeof command === "string"
-              ? command
-              : `${parsed.cmd} ${parsed.args.join(" ")}`
-          }' exited with code ${code}`,
+          `Command '${commandForLogs}' exited with code ${code}`,
         ),
       );
     });
@@ -262,11 +270,7 @@ function runCommand(
       clearTimeout(timeout);
       reject(
         new Error(
-          `Failed to start '${
-            typeof command === "string"
-              ? command
-              : `${parsed.cmd} ${parsed.args.join(" ")}`
-          }': ${err.message}`,
+          `Failed to start '${commandForLogs}': ${err.message}`,
         ),
       );
     });
