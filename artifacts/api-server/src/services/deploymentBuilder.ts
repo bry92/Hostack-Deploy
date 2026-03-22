@@ -654,6 +654,8 @@ async function cloneRepo(
   const gh = parseGitHubUrl(repoUrl);
 
   if (gh) {
+    let lastArchiveError: Error | null = null;
+
     if (commitHash) {
       const tarUrl = githubToken
         ? `https://api.github.com/repos/${gh.owner}/${gh.repo}/tarball/${commitHash}`
@@ -661,8 +663,8 @@ async function cloneRepo(
       try {
         await downloadAndExtract(tarUrl, workDir, deploymentId, stepOrderRef, githubToken);
         return;
-      } catch {
-        // Fall through to branch fetch.
+      } catch (error) {
+        lastArchiveError = error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -674,12 +676,17 @@ async function cloneRepo(
       try {
         await downloadAndExtract(tarUrl, workDir, deploymentId, stepOrderRef, githubToken);
         return;
-      } catch {
-        // Try next branch.
+      } catch (error) {
+        lastArchiveError = error instanceof Error ? error : new Error(String(error));
       }
     }
 
-    throw new Error(`Could not download repository '${repoUrl}'`);
+    await insertLog(
+      deploymentId,
+      `Archive download failed for '${repoUrl}'. Falling back to git clone${lastArchiveError ? ` (${lastArchiveError.message})` : ""}.`,
+      "warn",
+      stepOrderRef,
+    );
   }
 
   if (commitHash) {
