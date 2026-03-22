@@ -1,10 +1,10 @@
 import { spawn } from "child_process";
-import { mkdtemp, rm, readFile, access, writeFile } from "fs/promises";
+import { mkdtemp, rm, readFile, access, writeFile, readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { join, relative } from "path";
 import { db } from "@workspace/db";
 import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable, integrationsTable } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
   activateNodeDeployment,
@@ -39,8 +39,11 @@ type DeployStatus =
   | "ready"
   | "failed";
 
-const BUILD_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_INSTALL_TIMEOUT_MS = 15 * 60 * 1000;
+const DEFAULT_BUILD_TIMEOUT_MS = 10 * 60 * 1000;
 const CANDIDATE_DIRS = [".", "app", "web", "frontend", "client", "src"];
+const SHALLOW_MONOREPO_CONTAINERS = ["artifacts", "apps"];
 const FRAMEWORKS_REQUIRING_BUILD: FrameworkType[] = ["next.js", "nuxt", "sveltekit", "vue", "react"];
 const NEXT_CONFIG_FILES = ["next.config.js", "next.config.mjs", "next.config.ts", "next.config.cjs"];
 const VITE_CONFIG_FILES = ["vite.config.js", "vite.config.mjs", "vite.config.ts", "vite.config.cjs"];
@@ -71,6 +74,34 @@ const SERVER_PACKAGE_MARKERS = [
 const INSTALL_RETRY_DELAY_MS = 2000;
 const MAX_INSTALL_ATTEMPTS = 3;
 
+function parsePositiveIntEnv(name: string, fallback: number): number {
+  const rawValue = process.env[name]?.trim();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(rawValue, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.warn(`[deploymentBuilder] Invalid ${name} value "${rawValue}", using ${fallback}ms`);
+    return fallback;
+  }
+
+  return parsed;
+}
+
+const COMMAND_TIMEOUT_MS = parsePositiveIntEnv(
+  "HOSTACK_COMMAND_TIMEOUT_MS",
+  DEFAULT_COMMAND_TIMEOUT_MS,
+);
+const INSTALL_TIMEOUT_MS = parsePositiveIntEnv(
+  "HOSTACK_INSTALL_TIMEOUT_MS",
+  DEFAULT_INSTALL_TIMEOUT_MS,
+);
+const BUILD_TIMEOUT_MS = parsePositiveIntEnv(
+  "HOSTACK_BUILD_TIMEOUT_MS",
+  DEFAULT_BUILD_TIMEOUT_MS,
+);
+
 function sanitizeMessage(value: string): string {
   return value.replace(/\r/g, "").trimEnd();
 }
@@ -90,6 +121,17 @@ async function insertLog(
     message: sanitized,
     stepOrder: stepOrderRef.value++,
   });
+}
+
+async function getNextStepOrder(deploymentId: string): Promise<number> {
+  const [latestLog] = await db
+    .select({ stepOrder: deploymentLogsTable.stepOrder })
+    .from(deploymentLogsTable)
+    .where(eq(deploymentLogsTable.deploymentId, deploymentId))
+    .orderBy(desc(deploymentLogsTable.stepOrder), desc(deploymentLogsTable.createdAt))
+    .limit(1);
+
+  return latestLog ? latestLog.stepOrder + 1 : 0;
 }
 
 async function setStatus(
@@ -125,6 +167,9 @@ function runCommand(
   cwd: string,
   deploymentId: string,
   stepOrderRef: { value: number },
+  options?: {
+    timeoutMs?: number;
+  },
 ): Promise<void> {
   const parsed =
     typeof command === "string"
@@ -186,10 +231,12 @@ function runCommand(
       for (const line of lines) flush(line, "error");
     });
 
+    const timeoutMs = options?.timeoutMs ?? COMMAND_TIMEOUT_MS;
+
     const timeout = setTimeout(() => {
       proc.kill("SIGTERM");
-      reject(new Error(`Command timed out after ${BUILD_TIMEOUT_MS / 1000}s`));
-    }, BUILD_TIMEOUT_MS);
+      reject(new Error(`Command timed out after ${Math.round(timeoutMs / 1000)}s`));
+    }, timeoutMs);
 
     proc.on("close", async (code) => {
       clearTimeout(timeout);
@@ -247,7 +294,9 @@ async function runInstallCommandWithRetry(
 
   for (let attempt = 1; attempt <= MAX_INSTALL_ATTEMPTS; attempt += 1) {
     try {
-      await runCommand(installCommand, cwd, deploymentId, stepOrderRef);
+      await runCommand(installCommand, cwd, deploymentId, stepOrderRef, {
+        timeoutMs: INSTALL_TIMEOUT_MS,
+      });
       return;
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -438,12 +487,35 @@ async function scoreCandidate(baseDir: string, candidateRelative: string): Promi
   };
 }
 
+async function discoverShallowCandidateRoots(repoDir: string): Promise<string[]> {
+  const results: string[] = [];
+
+  for (const container of SHALLOW_MONOREPO_CONTAINERS) {
+    try {
+      const entries = await readdir(join(repoDir, container), { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) {
+          continue;
+        }
+
+        results.push(normalizeRelativePath(join(container, entry.name)));
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return results;
+}
+
 async function findProjectRoot(repoDir: string, preferredRoot = ""): Promise<ProjectRootCandidate | null> {
   const candidates: ProjectRootCandidate[] = [];
   const seen = new Set<string>();
+  const shallowCandidates = await discoverShallowCandidateRoots(repoDir);
   const candidateRoots = [
     preferredRoot.trim().length > 0 ? preferredRoot : null,
     ...CANDIDATE_DIRS,
+    ...shallowCandidates,
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   for (const candidate of candidateRoots) {
@@ -771,7 +843,7 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
 
   const preferredRoot = project.rootDirectory || "";
 
-  const stepOrderRef = { value: 0 };
+  const stepOrderRef = { value: await getNextStepOrder(deploymentId) };
   const startedAt = Date.now();
   let workDir: string | null = null;
   let failureReason: string | null = null;
@@ -840,17 +912,6 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     await log(`Resolved install command: ${installCommand}`);
     await log(`Resolved build command: ${explicitBuildCommand ?? "none"}`);
 
-    await db
-      .update(projectsTable)
-      .set({
-        buildCommand: detectedBuildCommand,
-        framework: frameworkType,
-        installCommand: baseInstallCommand,
-        repoBranch: branch,
-        rootDirectory: resolvedPlan.rootDirectory,
-      })
-      .where(eq(projectsTable.id, project.id));
-
     await setStatus(deploymentId, "installing");
     await log("State transition: installing");
     await log(`Executing install command: ${installCommand}`);
@@ -884,7 +945,9 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
 
       await log(`Executing build command: ${buildCommand}`);
       try {
-        await runCommand(buildCommand, buildRoot, deploymentId, stepOrderRef);
+        await runCommand(buildCommand, buildRoot, deploymentId, stepOrderRef, {
+          timeoutMs: BUILD_TIMEOUT_MS,
+        });
         buildWasRun = true;
       } catch (error) {
         failureReason = `Build failed: ${(error as Error).message}`;
@@ -1002,6 +1065,17 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     await log(`Deployment available at ${deploymentUrl}`, "success");
 
     const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
+    await db
+      .update(projectsTable)
+      .set({
+        buildCommand: detectedBuildCommand,
+        framework: frameworkType,
+        installCommand: baseInstallCommand,
+        repoBranch: branch,
+        rootDirectory: resolvedPlan.rootDirectory,
+      })
+      .where(eq(projectsTable.id, project.id));
+
     await db
       .update(deploymentsTable)
       .set({
