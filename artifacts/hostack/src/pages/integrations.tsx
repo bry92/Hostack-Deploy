@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearch } from "wouter";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,6 +187,25 @@ const PROVIDERS: readonly ProviderConfig[] = [
     ].filter(Boolean),
   },
 ];
+
+const GITHUB_ERROR_MESSAGES: Record<string, { description: string; title: string }> = {
+  auth_required: {
+    title: "GitHub connection requires a fresh login",
+    description: "Your session expired before the GitHub OAuth flow completed. Sign in again and retry the connection.",
+  },
+  github_oauth_not_configured: {
+    title: "GitHub OAuth is not configured on the backend",
+    description: "The hosted API is missing its GitHub client ID or client secret. Add both env vars to the Render API service and retry.",
+  },
+  github_oauth_state_mismatch: {
+    title: "GitHub OAuth state verification failed",
+    description: "The OAuth session cookie expired or did not match the callback. Retry the connection from this page.",
+  },
+  github_token_exchange_failed: {
+    title: "GitHub authorization completed, but token exchange failed",
+    description: "GitHub redirected back to Hostack, but the backend could not exchange the code for an access token.",
+  },
+};
 
 function ConnectModal({
   provider,
@@ -415,8 +436,17 @@ function IntegrationCard({
 }
 
 export default function Integrations() {
+  const search = useSearch();
   const { data, isLoading } = useListIntegrations();
   const integrations = data?.integrations || [];
+  const githubError = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const value = params.get("github_error");
+    return value ? GITHUB_ERROR_MESSAGES[value] ?? {
+      title: "GitHub connection failed",
+      description: value,
+    } : null;
+  }, [search]);
 
   const connectedMap = new Map(integrations.map(i => [i.provider, i]));
 
@@ -425,27 +455,40 @@ export default function Integrations() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-8">
-        {/* Header */}
-        <div className="pb-4 border-b border-border/50">
-          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
-          <p className="text-muted-foreground mt-1.5">
-            Connect your tools and services to power the full developer workflow.
-          </p>
-          <div className="flex items-center gap-6 mt-4 text-sm">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>{integrations.length} connected</span>
+      <AppPage>
+        <AppPageHeader
+          eyebrow="Infrastructure"
+          icon={<Link2Off className="h-5 w-5" />}
+          title="Integrations"
+          description="Connect source control, DNS, storage, notifications, and analytics so Hostack can operate as a real deployment control plane."
+          actions={
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>{integrations.length} connected</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <AlertCircle className="w-4 h-4 text-zinc-500" />
+                <span>{PROVIDERS.length - integrations.length} available</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <AlertCircle className="w-4 h-4 text-zinc-500" />
-              <span>{PROVIDERS.length - integrations.length} available</span>
-            </div>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Workflow pipeline visual */}
-        <div className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto pb-2 scrollbar-none">
+        {githubError && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="flex items-start gap-3 p-4">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-amber-200">{githubError.title}</p>
+                <p className="text-sm text-amber-100/80">{githubError.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <AppPageSection className="gap-6">
+        <div className="flex items-center gap-1 overflow-x-auto pb-2 text-xs text-muted-foreground scrollbar-none">
           {[
             { label: "Code", color: "text-blue-400" },
             { label: "→" },
@@ -508,7 +551,8 @@ export default function Integrations() {
             )}
           </>
         )}
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }

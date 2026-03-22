@@ -1,17 +1,17 @@
-import { ReactNode } from "react";
-import { useAuth } from "@workspace/auth-web";
-import { Redirect } from "wouter";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "./app-sidebar";
+import type { ReactNode } from "react";
+import { Redirect, Link, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@workspace/auth-web";
+import { AppSidebar, mobileNavItems } from "./app-sidebar";
 
 export function ProtectedLayout({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -20,28 +20,44 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
     return <Redirect to="/" />;
   }
 
-  const style = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "4rem",
-  };
-
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
-        <div className="flex flex-col flex-1 w-full overflow-hidden">
-          <header className="h-16 flex items-center px-4 md:px-6 border-b border-border/50 sticky top-0 bg-background/80 backdrop-blur-md z-10">
-            <SidebarTrigger className="mr-4 hover-elevate active-elevate-2 text-muted-foreground hover:text-foreground" />
-            <div className="flex-1" />
-            {/* Optional global header actions here */}
-          </header>
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            <div className="mx-auto max-w-6xl">
-              {children}
-            </div>
-          </main>
-        </div>
+    <div className="min-h-screen bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
+      <AppSidebar />
+
+      <div className="flex min-h-screen flex-col md:ml-64">
+        <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/92 backdrop-blur md:hidden dark:border-zinc-800 dark:bg-zinc-950/92">
+          <div className="flex h-14 items-center px-4">
+            <Link href="/dashboard" className="font-semibold tracking-tight">
+              Hostack
+            </Link>
+          </div>
+          <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
+            {mobileNavItems.map((item) => {
+              const active = location === item.url || location.startsWith(`${item.url}/`);
+              return (
+                <Link
+                  key={item.url}
+                  href={item.url}
+                  className={[
+                    "whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950"
+                      : "bg-zinc-200/70 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </header>
+
+        <main className="flex-1">
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-4 md:px-8 md:py-8">
+            {children}
+          </div>
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -134,20 +135,16 @@ export default function MetricsPage() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end gap-4 pb-4 border-b border-border/50">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <BarChart3 className="w-8 h-8 text-primary" />
-              Metrics
-            </h1>
-            <p className="text-muted-foreground mt-1">Performance and health metrics for your deployments.</p>
-          </div>
-          {summary && <HealthBadge status={summary.healthStatus} />}
-        </div>
+      <AppPage>
+        <AppPageHeader
+          eyebrow="Observability"
+          icon={<BarChart3 className="h-5 w-5" />}
+          title="Metrics"
+          description="Track health, latency, traffic, and rollout quality across deployments with a tighter operational view."
+          actions={summary ? <HealthBadge status={summary.healthStatus} /> : null}
+        />
 
-        {/* Controls */}
+        <AppPageSection className="gap-5">
         <div className="flex items-center gap-3">
           <Select value={selectedProject} onValueChange={setSelectedProject}>
             <SelectTrigger className="w-64 bg-card/50 border-border/50">
@@ -353,7 +350,8 @@ export default function MetricsPage() {
             )}
           </>
         )}
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }

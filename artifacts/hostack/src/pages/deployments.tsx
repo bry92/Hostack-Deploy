@@ -1,4 +1,5 @@
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader } from "@/components/layout/app-page";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useListAllDeployments } from "@workspace/api-client-react";
@@ -14,11 +15,13 @@ export default function Deployments() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">All Deployments</h1>
-          <p className="text-muted-foreground mt-1">Cross-project deployment history and statuses.</p>
-        </div>
+      <AppPage>
+        <AppPageHeader
+          eyebrow="Core"
+          icon={<Activity className="h-5 w-5" />}
+          title="Deployments"
+          description="Track every queued, running, failed, and ready deployment across all projects from a single operational timeline."
+        />
 
         {isLoading ? (
           <div className="h-64 bg-card/50 animate-pulse rounded-xl border border-border/50" />
@@ -73,7 +76,7 @@ export default function Deployments() {
             </CardContent>
           </Card>
         )}
-      </div>
+      </AppPage>
     </ProtectedLayout>
   );
 }

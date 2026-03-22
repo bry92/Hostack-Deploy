@@ -1,107 +1,182 @@
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  FolderGit2, 
-  Activity, 
-  Settings, 
+import {
+  Activity,
+  BarChart3,
+  FileText,
+  FolderGit2,
+  Gauge,
+  Globe,
+  LayoutDashboard,
   LogOut,
-  ChevronRight,
-  Boxes,
-  Plug,
-  Terminal,
-  BarChart3
+  Settings,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@workspace/auth-web";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const navItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Projects", url: "/projects", icon: FolderGit2 },
-  { title: "Deployments", url: "/deployments", icon: Activity },
-  { title: "Logs", url: "/logs", icon: Terminal },
-  { title: "Metrics", url: "/metrics", icon: BarChart3 },
-  { title: "Integrations", url: "/integrations", icon: Plug },
-  { title: "Settings", url: "/settings", icon: Settings },
+type NavItem = {
+  icon: typeof LayoutDashboard;
+  label: string;
+  url?: string;
+};
+
+const coreItems: NavItem[] = [
+  { label: "Overview", url: "/dashboard", icon: LayoutDashboard },
+  { label: "Projects", url: "/projects", icon: FolderGit2 },
+  { label: "Deployments", url: "/deployments", icon: Activity },
+  { label: "Logs", url: "/logs", icon: FileText },
+  { label: "Observability", url: "/metrics", icon: BarChart3 },
 ];
+
+const futureItems: NavItem[] = [
+  { label: "Analytics", icon: BarChart3 },
+  { label: "Speed Insights", icon: Gauge },
+];
+
+const infrastructureItems: NavItem[] = [
+  { label: "Integrations", url: "/integrations", icon: Globe },
+  { label: "Domains", icon: Globe },
+  { label: "Firewall", icon: Shield },
+];
+
+const footerItems: NavItem[] = [{ label: "Settings", url: "/settings", icon: Settings }];
+
+function isActivePath(location: string, url?: string): boolean {
+  if (!url) return false;
+  return location === url || location.startsWith(`${url}/`);
+}
+
+function NavItemRow({
+  active = false,
+  disabled = false,
+  icon: Icon,
+  label,
+}: {
+  active?: boolean;
+  disabled?: boolean;
+  icon: typeof LayoutDashboard;
+  label: string;
+}) {
+  return (
+    <div
+      className={[
+        "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+        active
+          ? "bg-zinc-800 text-white"
+          : "text-zinc-400 hover:bg-zinc-900 hover:text-white",
+        disabled
+          ? "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-zinc-500"
+          : "",
+      ].join(" ")}
+    >
+      <Icon size={16} />
+      <span className="truncate">{label}</span>
+      {disabled ? <span className="ml-auto text-[10px] uppercase tracking-wide text-zinc-500">Soon</span> : null}
+    </div>
+  );
+}
+
+function SidebarSection({
+  items,
+  location,
+  title,
+}: {
+  items: NavItem[];
+  location: string;
+  title: string;
+}) {
+  return (
+    <div>
+      <p className="mb-2 px-3 text-[11px] uppercase tracking-[0.18em] text-zinc-500">{title}</p>
+      <nav className="space-y-1">
+        {items.map((item) => {
+          const active = isActivePath(location, item.url);
+          const disabled = !item.url;
+
+          if (!item.url) {
+            return (
+              <NavItemRow
+                key={item.label}
+                disabled={disabled}
+                icon={item.icon}
+                label={item.label}
+              />
+            );
+          }
+
+          return (
+            <Link key={item.label} href={item.url}>
+              <NavItemRow active={active} icon={item.icon} label={item.label} />
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const displayName =
+    user?.firstName && user?.firstName.trim()
+      ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+      : user?.email?.split("@")[0] || "Operator";
 
   return (
-    <Sidebar className="border-r border-border bg-sidebar">
-      <SidebarHeader className="h-16 flex items-center px-4 border-b border-border/50">
-        <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-foreground">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <Boxes className="w-5 h-5" />
-          </div>
+    <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 text-white md:flex">
+      <div className="flex h-14 items-center border-b border-zinc-800 px-4">
+        <Link href="/dashboard" className="font-semibold tracking-tight text-white">
           Hostack
-        </div>
-      </SidebarHeader>
+        </Link>
+      </div>
 
-      <SidebarContent className="py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Platform
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => {
-                const isActive = location === item.url || location.startsWith(`${item.url}/`);
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className="font-medium hover-elevate active-elevate-2 transition-all duration-200"
-                    >
-                      <Link href={item.url} className="flex items-center gap-3">
-                        <item.icon className="w-4 h-4 opacity-70" />
-                        <span>{item.title}</span>
-                        {isActive && <ChevronRight className="w-4 h-4 ml-auto opacity-50" />}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+      <div className="flex-1 space-y-6 overflow-y-auto px-2 py-4">
+        <SidebarSection items={coreItems} location={location} title="Core" />
+        <SidebarSection items={futureItems} location={location} title="Insights" />
+        <SidebarSection items={infrastructureItems} location={location} title="Infrastructure" />
+      </div>
 
-      <SidebarFooter className="p-4 border-t border-border/50">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <Avatar className="h-9 w-9 border border-border">
+      <div className="border-t border-zinc-800 p-2">
+        <nav className="space-y-1">
+          {footerItems.map((item) => (
+            <Link key={item.label} href={item.url!}>
+              <NavItemRow active={isActivePath(location, item.url)} icon={item.icon} label={item.label} />
+            </Link>
+          ))}
+        </nav>
+
+        <div className="mt-3 flex items-center gap-3 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 py-3">
+          <Avatar className="h-9 w-9 border border-zinc-800">
             <AvatarImage src={user?.profileImage ?? undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary font-bold">
-              {user?.firstName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+            <AvatarFallback className="bg-zinc-800 text-zinc-100">
+              {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-medium truncate">{user?.firstName ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : user?.email?.split('@')[0] || 'User'}</span>
-            <span className="text-xs text-muted-foreground truncate">{user?.email || 'Developer'}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-zinc-100">{displayName}</p>
+            <p className="truncate text-xs text-zinc-500">{user?.email || "hostack operator"}</p>
           </div>
         </div>
-        <button 
+
+        <button
+          type="button"
           onClick={() => logout()}
-          className="flex w-full items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md transition-colors hover:bg-white/5"
+          className="mt-2 flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-white"
         >
-          <LogOut className="w-4 h-4" />
-          Sign Out
+          <LogOut size={16} />
+          <span>Sign Out</span>
         </button>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </aside>
   );
 }
+
+export const mobileNavItems = [
+  { label: "Overview", url: "/dashboard" },
+  { label: "Projects", url: "/projects" },
+  { label: "Deployments", url: "/deployments" },
+  { label: "Logs", url: "/logs" },
+  { label: "Observability", url: "/metrics" },
+];

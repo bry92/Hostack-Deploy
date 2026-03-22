@@ -5,17 +5,20 @@ import {
   ArrowLeft,
   Box,
   Github,
+  LayoutDashboard,
   Plus,
   Rocket,
   Search,
   Trash2,
 } from "lucide-react";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FrameworkIcon } from "@/components/ui/framework-icon";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useToast } from "@/hooks/use-toast";
 
 type Project = {
   framework?: string | null;
@@ -70,6 +73,7 @@ function formatUpdatedAt(value?: string | null): string {
 export default function ProjectsPage() {
   const search = useSearch();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const isCreating = params.get("new") === "true";
 
@@ -145,6 +149,11 @@ export default function ProjectsPage() {
       setRepos(getRepos(data));
     } catch (error) {
       console.error("Failed to load repos", error);
+      toast({
+        title: "Failed to load GitHub repositories",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
       setGithubConnected(null);
       setRepos([]);
     } finally {
@@ -198,6 +207,11 @@ export default function ProjectsPage() {
       setLocation("/projects");
     } catch (error) {
       console.error("Failed to create project from repo", error);
+      toast({
+        title: "Failed to create project from repository",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
     } finally {
       setRepoActionLoading(false);
     }
@@ -224,34 +238,33 @@ export default function ProjectsPage() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {isCreating ? "Import From GitHub" : "Projects"}
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              {isCreating
-                ? "Pick a repository and Hostack will create the project and kick off the first deployment."
-                : "Manage your applications, deployments, and repository connections."}
-            </p>
-          </div>
-
-          {isCreating ? (
-            <Button variant="outline" onClick={() => setLocation("/projects")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Projects
-            </Button>
-          ) : (
-            <Button onClick={() => setLocation("/projects?new=true")}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Project
-            </Button>
-          )}
-        </div>
+      <AppPage>
+        <AppPageHeader
+          eyebrow={isCreating ? "Repository Import" : "Core"}
+          icon={isCreating ? <Github className="h-5 w-5" /> : <LayoutDashboard className="h-5 w-5" />}
+          title={isCreating ? "Import From GitHub" : "Projects"}
+          description={
+            isCreating
+              ? "Pick a repository and Hostack will create the project, queue the first deployment, and route you straight into the build stream."
+              : "Manage application roots, repository connections, and deployment state across every project."
+          }
+          actions={
+            isCreating ? (
+              <Button variant="outline" onClick={() => setLocation("/projects")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Projects
+              </Button>
+            ) : (
+              <Button onClick={() => setLocation("/projects?new=true")}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+            )
+          }
+        />
 
         {isCreating ? (
-          <>
+          <AppPageSection>
             <div className="relative max-w-xl">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -333,9 +346,9 @@ export default function ProjectsPage() {
                 Creating project and starting deployment...
               </p>
             ) : null}
-          </>
+          </AppPageSection>
         ) : (
-          <>
+          <AppPageSection>
             <div className="relative max-w-xl">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -423,9 +436,9 @@ export default function ProjectsPage() {
                 ))}
               </div>
             )}
-          </>
+          </AppPageSection>
         )}
-      </div>
+      </AppPage>
     </ProtectedLayout>
   );
 }

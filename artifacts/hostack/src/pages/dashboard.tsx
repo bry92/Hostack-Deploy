@@ -1,7 +1,8 @@
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderGit2, Activity, Rocket, ArrowRight, Plus } from "lucide-react";
+import { LayoutDashboard, FolderGit2, Activity, Rocket, ArrowRight, Plus } from "lucide-react";
 import { useGetDashboardStats, useListProjects } from "@workspace/api-client-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link, useLocation } from "wouter";
@@ -17,19 +18,20 @@ export default function Dashboard() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Overview of your deployments and projects.</p>
-          </div>
-          <Button onClick={() => setLocation("/projects?new=true")} className="shadow-md shadow-primary/20">
-            <Plus className="w-4 h-4 mr-2" /> New Project
-          </Button>
-        </div>
+      <AppPage>
+        <AppPageHeader
+          eyebrow="Core"
+          icon={<LayoutDashboard className="h-5 w-5" />}
+          title="Overview"
+          description="Monitor project health, recent deployments, and the current state of your platform from one place."
+          actions={
+            <Button onClick={() => setLocation("/projects?new=true")} className="shadow-md shadow-primary/20">
+              <Plus className="mr-2 h-4 w-4" /> New Project
+            </Button>
+          }
+        />
 
-        {/* Stats Row */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <AppPageSection className="grid gap-4 md:grid-cols-3">
           <Card className="hover-elevate transition-all border-border/50 bg-card/50 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
@@ -63,9 +65,9 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </AppPageSection>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <AppPageSection className="grid gap-6 xl:grid-cols-2">
           {/* Recent Deployments */}
           <Card className="border-border/50">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -142,8 +144,8 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }

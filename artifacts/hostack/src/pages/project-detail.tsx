@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ export default function ProjectDetail() {
   const { triggerDeployment, isTriggering } = useDeploymentsMutations();
   const [copilotMessages, setCopilotMessages] = useState<ChatMessage[]>([]);
   const [showAutoDeployBanner, setShowAutoDeployBanner] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
   const { data: buildRulesData } = useListBuildRules(projectId);
 
   const projectBranch = project?.repoBranch || "main";
@@ -104,12 +106,42 @@ export default function ProjectDetail() {
     }
   };
 
-  if (projectLoading) return <ProtectedLayout><div className="animate-pulse h-32 bg-card rounded-xl" /></ProtectedLayout>;
-  if (!project) return <ProtectedLayout><div>Project not found</div></ProtectedLayout>;
+  if (projectLoading) {
+    return (
+      <ProtectedLayout>
+        <AppPage>
+          <AppPageHeader
+            eyebrow="Projects"
+            icon={<FolderOpen className="h-5 w-5" />}
+            title="Loading project"
+            description="Loading deployment controls, runtime signals, and project settings."
+          />
+          <AppPageSection>
+            <div className="h-40 animate-pulse rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/70" />
+          </AppPageSection>
+        </AppPage>
+      </ProtectedLayout>
+    );
+  }
+
+  if (!project) {
+    return (
+      <ProtectedLayout>
+        <AppPage>
+          <AppPageHeader
+            eyebrow="Projects"
+            icon={<FolderOpen className="h-5 w-5" />}
+            title="Project not found"
+            description="The selected project is unavailable for the current account or no longer exists."
+          />
+        </AppPage>
+      </ProtectedLayout>
+    );
+  }
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-6">
+      <AppPage>
         {showAutoDeployBanner && (
           <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-300">
             <Zap className="w-4 h-4 flex-shrink-0 text-blue-400" />
@@ -121,43 +153,65 @@ export default function ProjectDetail() {
             </button>
           </div>
         )}
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-border/50">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white">{project.name}</h1>
+        <AppPageHeader
+          eyebrow="Projects"
+          icon={<FolderOpen className="h-5 w-5" />}
+          title={project.name}
+          description={
+            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+              <span>Build configuration, deployment history, runtime signals, and project controls.</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="flex items-center gap-1">
+                  <Github className="h-4 w-4" /> {project.repoUrl || "Unlinked"}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Globe className="h-4 w-4" /> {project.framework || "unknown"}
+                </span>
+                {project.repoBranch ? (
+                  <span className="flex items-center gap-1">
+                    <GitBranch className="h-4 w-4" /> {project.repoBranch}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          }
+          actions={
+            <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={project.latestDeploymentStatus} />
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab("settings")}
+                className="gap-2"
+              >
+                <Pencil className="h-4 w-4" />
+                Settings
+              </Button>
+              <Button
+                onClick={handleManualDeploy}
+                disabled={isTriggering}
+                className="px-5 font-semibold shadow-lg shadow-primary/20"
+              >
+                <Rocket className="mr-2 h-4 w-4" />
+                {isTriggering ? "Triggering..." : "Deploy to Production"}
+              </Button>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1"><Github className="w-4 h-4" /> {project.repoUrl || "Unlinked"}</span>
-              <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> {project.framework}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handleManualDeploy}
-              disabled={isTriggering}
-              className="shadow-lg shadow-primary/20 hover-elevate active-elevate-2 font-semibold px-6"
-            >
-              <Rocket className="w-4 h-4 mr-2" />
-              {isTriggering ? "Triggering..." : "Deploy to Production"}
-            </Button>
-          </div>
-        </div>
+          }
+        />
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-card/50 border border-border w-full justify-start rounded-lg p-1 h-12 gap-0.5 overflow-x-auto">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Overview</TabsTrigger>
-            <TabsTrigger value="deployments" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Deployments</TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Logs</TabsTrigger>
-            <TabsTrigger value="metrics" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Metrics</TabsTrigger>
-            <TabsTrigger value="copilot" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4 gap-1.5"><Sparkles className="w-3.5 h-3.5" />Copilot</TabsTrigger>
-            <TabsTrigger value="envvars" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Env Vars</TabsTrigger>
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Integrations</TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-md px-4">Settings</TabsTrigger>
+        <AppPageSection className="gap-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full flex-col gap-4">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900/70">
+            <TabsTrigger value="overview" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Overview</TabsTrigger>
+            <TabsTrigger value="deployments" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Deployments</TabsTrigger>
+            <TabsTrigger value="logs" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Logs</TabsTrigger>
+            <TabsTrigger value="metrics" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Metrics</TabsTrigger>
+            <TabsTrigger value="copilot" className="gap-1.5 rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950"><Sparkles className="w-3.5 h-3.5" />Copilot</TabsTrigger>
+            <TabsTrigger value="envvars" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Env Vars</TabsTrigger>
+            <TabsTrigger value="integrations" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Integrations</TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Settings</TabsTrigger>
           </TabsList>
 
-          <div className="mt-6">
+          <div>
             <TabsContent value="overview" className="m-0 focus-visible:outline-none">
               <OverviewTab project={project} projectId={projectId} />
             </TabsContent>
@@ -184,7 +238,8 @@ export default function ProjectDetail() {
             </TabsContent>
           </div>
         </Tabs>
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }
@@ -211,18 +266,18 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
 
   return (
     <Card className="border-border/50 bg-card/30">
-      <CardHeader>
-        <CardTitle>Deployment History</CardTitle>
-        <CardDescription>View and monitor your project&apos;s deployments.</CardDescription>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Deployment History</CardTitle>
+        <CardDescription>Build runs, promotion status, and rollback access for this project.</CardDescription>
       </CardHeader>
       <CardContent>
         {deployments.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+          <div className="rounded-lg border border-dashed border-border/50 py-6 text-center text-muted-foreground">
             No deployments yet. Trigger a deployment to get started.
           </div>
         ) : (
           <div className="rounded-md border border-border/50 overflow-hidden">
-            <div className="grid grid-cols-12 gap-3 p-4 text-xs font-medium text-muted-foreground bg-white/[0.02] border-b border-border/50">
+            <div className="grid grid-cols-12 gap-3 border-b border-border/50 bg-white/[0.02] px-3 py-3 text-xs font-medium text-muted-foreground">
               <div className="col-span-2">Status</div>
               <div className="col-span-3">Commit / URL</div>
               <div className="col-span-2">Environment</div>
@@ -236,7 +291,7 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                 const canRollback = (dep.status === "deployed" || dep.status === "ready") && dep.environment === "production" && dep.id !== mostRecentDeployedId;
 
                 return (
-                  <div key={dep.id} className="grid grid-cols-12 gap-3 p-4 items-center text-sm hover:bg-white/[0.02] transition-colors">
+                  <div key={dep.id} className="grid grid-cols-12 items-center gap-3 px-3 py-3 text-sm transition-colors hover:bg-white/[0.02]">
                     <div className="col-span-2 flex items-center gap-1.5">
                       <StatusBadge status={dep.status} />
                       {isRollback && (
@@ -253,12 +308,12 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                             <GitCommit className="w-3 h-3 flex-shrink-0" />
                             {dep.commitHash.slice(0, 8)}
                             {dep.commitMessage && (
-                              <span className="text-foreground/70 truncate max-w-[160px]">{dep.commitMessage}</span>
+                              <span className="min-w-0 flex-1 truncate text-foreground/70">{dep.commitMessage}</span>
                             )}
                           </span>
                           {dep.deploymentUrl && (
                             <a href={dep.deploymentUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-xs text-emerald-400/80 hover:text-emerald-400 font-mono truncate flex items-center gap-1 max-w-[200px]"
+                              className="flex items-center gap-1 truncate font-mono text-xs text-emerald-400/80 hover:text-emerald-400"
                               onClick={e => e.stopPropagation()}>
                               <Globe className="w-3 h-3 flex-shrink-0" />
                               {dep.deploymentUrl.replace("https://", "")}
@@ -482,7 +537,7 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                   <p className="text-sm text-muted-foreground mb-1">Ask anything about your project</p>
                   <p className="text-xs text-muted-foreground/60">I have access to your deployments, logs, metrics, and configuration.</p>
                 </div>
-                <div className="flex flex-wrap gap-2 justify-center max-w-md">
+                <div className="flex w-full flex-wrap justify-center gap-2">
                   {suggestedPrompts.map((prompt) => (
                     <button
                       key={prompt}
@@ -505,14 +560,14 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+                    className={`w-full rounded-xl px-4 py-3 text-sm leading-relaxed sm:w-auto sm:basis-[80%] ${
                       msg.role === "user"
                         ? "bg-primary/10 border border-primary/20 text-foreground"
                         : "bg-white/[0.03] border border-border/50 text-foreground/90"
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-invert prose-sm max-w-none [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2 [&>pre]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>code]:text-violet-300 [&>code]:bg-violet-500/10 [&>code]:px-1 [&>code]:rounded">
+                      <div className="prose prose-invert prose-sm [&>p]:mb-2 [&>ul]:mb-2 [&>ol]:mb-2 [&>pre]:mb-2 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm [&>code]:text-violet-300 [&>code]:bg-violet-500/10 [&>code]:px-1 [&>code]:rounded">
                         <CopilotMarkdown content={msg.content} />
                       </div>
                     ) : (
@@ -678,7 +733,7 @@ function EnvVarsTab({ projectId }: { projectId: string }) {
   const envVars = data?.envVars || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle>Add Environment Variable</CardTitle>
@@ -719,7 +774,7 @@ function EnvVarsTab({ projectId }: { projectId: string }) {
         <CardContent>
           {isLoading ? <div className="h-20 bg-muted/20 animate-pulse rounded" /> :
             envVars.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+              <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
                 No environment variables defined.
               </div>
             ) : (
@@ -1161,7 +1216,9 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
 
       {rules.length === 0 && !showAdd && (
         <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
-          <GitBranch className="w-5 h-5 mx-auto mb-2 opacity-50" />
+          <div className="mb-2 flex justify-center opacity-50">
+            <GitBranch className="h-5 w-5" />
+          </div>
           <p className="text-sm">No build rules configured yet.</p>
           <p className="text-xs mt-1">Add rules to auto-deploy specific branches with custom build settings.</p>
         </div>
@@ -1343,7 +1400,9 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
         </div>
       ) : (
         <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
-          <Webhook className="w-5 h-5 mx-auto mb-2 opacity-50" />
+          <div className="mb-2 flex justify-center opacity-50">
+            <Webhook className="h-5 w-5" />
+          </div>
           <p className="text-sm">No deploy webhooks configured yet.</p>
           <p className="text-xs mt-1">Generate a webhook to trigger deployments from external services.</p>
         </div>
@@ -1783,18 +1842,18 @@ function SettingsTab({ project }: { project: Project }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* General */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30 md:col-span-2">
+        <CardHeader className="pb-3">
           <CardTitle>General Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2 max-w-xl">
+          <div className="space-y-2">
             <Label>Project Name</Label>
             <Input value={name} onChange={e => setName(e.target.value)} />
           </div>
-          <div className="space-y-2 max-w-xl">
+          <div className="space-y-2">
             <Label>Repository URL</Label>
             <Input value={repoUrl} onChange={e => setRepoUrl(e.target.value)} />
           </div>
@@ -1805,8 +1864,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Build Settings */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30 md:col-span-2">
+        <CardHeader className="pb-3">
           <CardTitle>Build & Deploy Settings</CardTitle>
           <CardDescription>Configure how your project is built and deployed.</CardDescription>
         </CardHeader>
@@ -1816,8 +1875,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* GitHub Integration */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30">
+        <CardHeader className="pb-3">
           <CardTitle>GitHub Integration</CardTitle>
           <CardDescription>Connect GitHub to enable private repo access and auto-deploy on push.</CardDescription>
         </CardHeader>
@@ -1827,8 +1886,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Build Rules */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30 md:col-span-2">
+        <CardHeader className="pb-3">
           <CardTitle>Build Rules</CardTitle>
           <CardDescription>Configure branch-specific build rules for automated deployments. Match branch patterns to deploy to different environments with custom build settings.</CardDescription>
         </CardHeader>
@@ -1838,8 +1897,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Deploy Webhooks */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30 md:col-span-2">
+        <CardHeader className="pb-3">
           <CardTitle>Deploy Webhooks</CardTitle>
           <CardDescription>Generate webhook URLs that trigger deployments when called. Use these in your CI/CD pipeline or external tools.</CardDescription>
         </CardHeader>
@@ -1849,8 +1908,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* SSH Key */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30">
+        <CardHeader className="pb-3">
           <CardTitle>SSH Deploy Key</CardTitle>
           <CardDescription>Generate an ED25519 SSH key to authenticate with private GitHub repositories without a personal access token.</CardDescription>
         </CardHeader>
@@ -1860,8 +1919,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Custom Domains */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30">
+        <CardHeader className="pb-3">
           <CardTitle>Custom Domains</CardTitle>
           <CardDescription>Attach your own domain names to this project. Configure DNS records to point to Hostack.</CardDescription>
         </CardHeader>
@@ -1871,8 +1930,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Notifications */}
-      <Card className="border-border/50">
-        <CardHeader>
+      <Card className="border-border/50 bg-card/30 md:col-span-2">
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2"><Bell className="w-5 h-5" /> Notifications</CardTitle>
           <CardDescription>Get alerted when deployments start, succeed, or fail via Slack, Discord, or a custom webhook.</CardDescription>
         </CardHeader>
@@ -1882,8 +1941,8 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-destructive/30 bg-destructive/5">
-        <CardHeader>
+      <Card className="border-destructive/30 bg-destructive/5 lg:col-span-3">
+        <CardHeader className="pb-3">
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
           <CardDescription>Irreversible and destructive actions.</CardDescription>
         </CardHeader>
@@ -1940,8 +1999,8 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
   }[health?.healthStatus || "unknown"] ?? "bg-zinc-500";
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 flex flex-col gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="flex flex-col gap-4 md:col-span-2">
         <Card className="border-border/50 bg-card/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -1959,7 +2018,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
                 </Badge>
               )}
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+            <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
               <div className="p-3 bg-white/5 rounded-lg border border-border/50">
                 <p className="text-xs text-muted-foreground mb-1">Error Rate</p>
                 <p className={`font-semibold ${metrics?.errorRate != null && metrics.errorRate > 5 ? "text-red-400" : "text-emerald-400"}`}>
@@ -2018,7 +2077,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
                 </Link>
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border/50 rounded-lg">
+              <div className="rounded-lg border border-dashed border-border/50 py-5 text-center text-sm text-muted-foreground">
                 No deployments yet
               </div>
             )}
@@ -2034,7 +2093,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
           </CardHeader>
           <CardContent>
             {recentErrors.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border/50 rounded-lg flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/50 py-5 text-center text-sm text-muted-foreground">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 opacity-60" />
                 No recent errors
               </div>
@@ -2159,85 +2218,92 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
   const logs = logsQuery.data?.logs || [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col md:flex-row gap-2">
-        <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="w-36 bg-card/50 border-border/50">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All levels</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-            <SelectItem value="warn">Warning</SelectItem>
-            <SelectItem value="info">Info</SelectItem>
-            <SelectItem value="debug">Debug</SelectItem>
-            <SelectItem value="success">Success</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search logs..."
-            value={logSearch}
-            onChange={e => setLogSearch(e.target.value)}
-            className="pl-9 bg-card/50 border-border/50"
-          />
+    <Card className="border-border/50 bg-card/30">
+      <CardHeader className="gap-4 pb-3">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base">Runtime Logs</CardTitle>
+            <CardDescription>Search and inspect recent runtime output for this project.</CardDescription>
+          </div>
+          <div className="flex gap-2 self-start">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => simulateMutation.mutate({ projectId, data: { count: 30 } })}
+              disabled={simulateMutation.isPending}
+              className="gap-1.5 text-xs"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              {simulateMutation.isPending ? "..." : "Simulate"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => clearMutation.mutate({ projectId })}
+              disabled={clearMutation.isPending}
+              className="text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => queryClient.invalidateQueries({ queryKey: getListRuntimeLogsQueryKey(projectId) })}
+            >
+              <RefreshCw className={`h-4 w-4 ${logsQuery.isFetching ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => simulateMutation.mutate({ projectId, data: { count: 30 } })}
-            disabled={simulateMutation.isPending}
-            className="gap-1.5 text-xs"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            {simulateMutation.isPending ? "..." : "Simulate"}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => clearMutation.mutate({ projectId })}
-            disabled={clearMutation.isPending}
-            className="text-red-400 hover:bg-red-500/10"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => queryClient.invalidateQueries({ queryKey: getListRuntimeLogsQueryKey(projectId) })}
-          >
-            <RefreshCw className={`w-4 h-4 ${logsQuery.isFetching ? "animate-spin" : ""}`} />
-          </Button>
+        <div className="flex flex-col gap-2 md:flex-row">
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="w-full border-border/50 bg-card/50 md:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All levels</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+              <SelectItem value="warn">Warning</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
+              <SelectItem value="debug">Debug</SelectItem>
+              <SelectItem value="success">Success</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search logs..."
+              value={logSearch}
+              onChange={e => setLogSearch(e.target.value)}
+              className="border-border/50 bg-card/50 pl-9"
+            />
+          </div>
         </div>
-      </div>
-
-      <Card className="border-border/50 bg-card/20">
-        <CardContent className="p-0">
-          <div className="bg-zinc-950 font-mono text-xs leading-relaxed h-[480px] overflow-y-auto rounded-xl">
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="overflow-hidden rounded-xl border border-border/50 bg-zinc-950 font-mono text-xs leading-relaxed">
+          <div className="h-[480px] overflow-y-auto">
             {logsQuery.isLoading ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" /> Loading...
+              <div className="flex h-full items-center justify-center gap-2 text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin" /> Loading...
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                <Terminal className="w-10 h-10 opacity-20" />
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+                <Terminal className="h-10 w-10 opacity-20" />
                 <p className="text-sm">No logs found. Click Simulate to generate sample entries.</p>
               </div>
             ) : (
-              <div className="p-4 space-y-0.5">
+              <div className="space-y-0.5 p-3">
                 {logs.map(log => {
                   const cfg = LOG_LEVEL_CONFIG[log.level as keyof typeof LOG_LEVEL_CONFIG] || LOG_LEVEL_CONFIG.info;
                   return (
-                    <div key={log.id} className="flex gap-3 hover:bg-white/5 rounded px-2 py-0.5 transition-colors">
-                      <span className="text-zinc-600 select-none w-20 flex-shrink-0 text-[11px] mt-0.5">
+                    <div key={log.id} className="flex gap-3 rounded px-2 py-1 transition-colors hover:bg-white/5">
+                      <span className="mt-0.5 w-20 flex-shrink-0 select-none text-[11px] text-zinc-600">
                         {format(new Date(log.createdAt), "HH:mm:ss.SSS")}
                       </span>
                       <span className={`w-14 flex-shrink-0 text-[10px] font-bold uppercase ${cfg.color}`}>
                         {log.level}
                       </span>
-                      <span className="text-zinc-500 w-16 flex-shrink-0 text-[11px] truncate">{log.source || "app"}</span>
+                      <span className="w-16 flex-shrink-0 truncate text-[11px] text-zinc-500">{log.source || "app"}</span>
                       <span className={`flex-1 ${cfg.color} whitespace-pre-wrap break-all`}>{log.message}</span>
                     </div>
                   );
@@ -2245,9 +2311,9 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -2277,52 +2343,62 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => simulateMutation.mutate({ projectId, data: {} })}
-          disabled={simulateMutation.isPending}
-          className="gap-1.5 text-xs"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          {simulateMutation.isPending ? "Generating..." : "Generate Sample Data"}
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => queryClient.invalidateQueries({ queryKey: getGetMetricsSummaryQueryKey(projectId) })}
-        >
-          <RefreshCw className={`w-4 h-4 ${summaryQuery.isFetching ? "animate-spin" : ""}`} />
-        </Button>
-        {healthQuery.data && (
-          <Badge variant="outline" className={`ml-auto gap-1.5 capitalize ${
-            healthQuery.data.healthStatus === "healthy" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-            healthQuery.data.healthStatus === "warning" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
-            healthQuery.data.healthStatus === "critical" ? "bg-red-500/10 text-red-400 border-red-500/20" :
-            "bg-orange-500/10 text-orange-400 border-orange-500/20"
-          }`}>
-            {healthQuery.data.healthStatus}
-          </Badge>
-        )}
-      </div>
+      <Card className="border-border/50 bg-card/30">
+        <CardHeader className="gap-4 pb-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Runtime Metrics</CardTitle>
+              <CardDescription>Traffic, latency, availability, and health signals for this project.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 self-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => simulateMutation.mutate({ projectId, data: {} })}
+                disabled={simulateMutation.isPending}
+                className="gap-1.5 text-xs"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                {simulateMutation.isPending ? "Generating..." : "Generate Sample Data"}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => queryClient.invalidateQueries({ queryKey: getGetMetricsSummaryQueryKey(projectId) })}
+              >
+                <RefreshCw className={`h-4 w-4 ${summaryQuery.isFetching ? "animate-spin" : ""}`} />
+              </Button>
+              {healthQuery.data && (
+                <Badge variant="outline" className={`gap-1.5 capitalize ${
+                  healthQuery.data.healthStatus === "healthy" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                  healthQuery.data.healthStatus === "warning" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
+                  healthQuery.data.healthStatus === "critical" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                  "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                }`}>
+                  {healthQuery.data.healthStatus}
+                </Badge>
+              )}
+            </div>
+          </div>
 
-      {isEmpty && !summaryQuery.isLoading && (
-        <div className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-sm text-amber-400">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          No metrics data yet. Click &quot;Generate Sample Data&quot; to simulate traffic metrics.
-        </div>
-      )}
+          {isEmpty && !summaryQuery.isLoading && (
+            <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-sm text-amber-400">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              No metrics data yet. Click &quot;Generate Sample Data&quot; to simulate traffic metrics.
+            </div>
+          )}
+        </CardHeader>
+      </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Requests / min", value: summary?.requestsPerMin, color: "text-blue-400" },
           { label: "Error Rate", value: summary?.errorRate, unit: "%", color: summary?.errorRate != null && summary.errorRate > 5 ? "text-red-400" : "text-emerald-400" },
           { label: "P95 Latency", value: summary?.p95LatencyMs, unit: "ms", color: summary?.p95LatencyMs != null && summary.p95LatencyMs > 500 ? "text-orange-400" : "text-cyan-400" },
           { label: "Active Sessions", value: summary?.activeSessions, color: "text-violet-400" },
         ].map(({ label, value, unit, color }) => (
-          <div key={label} className="p-4 rounded-xl bg-white/5 border border-border/50">
-            <p className="text-xs text-muted-foreground mb-2">{label}</p>
+          <div key={label} className="rounded-xl border border-border/50 bg-white/5 p-4">
+            <p className="mb-2 text-xs text-muted-foreground">{label}</p>
             <p className={`text-2xl font-bold tabular-nums ${color}`}>
               {value == null || isEmpty
                 ? <span className="text-muted-foreground text-xl">—</span>
@@ -2332,14 +2408,14 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {[
           { label: "Uptime", value: summary?.uptimePct, unit: "%", color: "text-emerald-400" },
           { label: "Cold Starts", value: summary?.coldStarts, color: "text-amber-400" },
           { label: "Bandwidth", value: summary?.bandwidthKb, unit: " KB/s", color: "text-indigo-400" },
         ].map(({ label, value, unit, color }) => (
-          <div key={label} className="p-4 rounded-xl bg-white/5 border border-border/50">
-            <p className="text-xs text-muted-foreground mb-2">{label}</p>
+          <div key={label} className="rounded-xl border border-border/50 bg-white/5 p-4">
+            <p className="mb-2 text-xs text-muted-foreground">{label}</p>
             <p className={`text-2xl font-bold tabular-nums ${color}`}>
               {value == null || isEmpty
                 ? <span className="text-muted-foreground text-xl">—</span>
@@ -2413,7 +2489,7 @@ function NotificationChannelCard({
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">{channelLabel(setting.channelType)}</Badge>
           {setting.channelType === "webhook" && setting.webhookUrl && (
-            <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">{setting.webhookUrl}</span>
+            <span className="truncate font-mono text-xs text-muted-foreground">{setting.webhookUrl}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -2554,7 +2630,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {settings.length > 0 && (
         <div className="space-y-4">
           {settings.map(setting => (
@@ -2580,8 +2656,10 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
       )}
 
       {settings.length === 0 && !addingChannel && (
-        <div className="text-center py-8 text-muted-foreground border border-dashed border-border/50 rounded-lg">
-          <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+        <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+          <div className="mb-2 flex justify-center opacity-30">
+            <Bell className="h-8 w-8" />
+          </div>
           <p className="text-sm">No notification channels configured.</p>
           <p className="text-xs mt-1">Add a channel to get alerted on deploy events.</p>
         </div>
@@ -2595,7 +2673,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
       )}
 
       {addingChannel && (
-        <div className="space-y-4 max-w-xl p-4 rounded-lg border border-border/50 bg-white/[0.02]">
+        <div className="space-y-4 rounded-lg border border-border/50 bg-white/[0.02] p-4">
           <div className="space-y-2">
             <Label>Delivery Channel</Label>
             <Select value={newChannelType} onValueChange={(v) => setNewChannelType(v as UpdateNotificationSettingsBodyChannelType)}>

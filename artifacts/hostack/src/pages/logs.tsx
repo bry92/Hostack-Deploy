@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,32 +156,30 @@ export default function LogsPage() {
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end gap-4 pb-4 border-b border-border/50">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <Terminal className="w-8 h-8 text-primary" />
-              Runtime Logs
-            </h1>
-            <p className="text-muted-foreground mt-1">Live application log tail and historical log search.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {errorCount > 0 && (
-              <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">
-                {errorCount} errors
-              </Badge>
-            )}
-            {warnCount > 0 && (
-              <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-                {warnCount} warnings
-              </Badge>
-            )}
-          </div>
-        </div>
+      <AppPage>
+        <AppPageHeader
+          eyebrow="Observability"
+          icon={<Terminal className="h-5 w-5" />}
+          title="Runtime Logs"
+          description="Tail live application output, filter noisy history, and isolate runtime failures without leaving the control plane."
+          actions={
+            <div className="flex items-center gap-2">
+              {errorCount > 0 && (
+                <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">
+                  {errorCount} errors
+                </Badge>
+              )}
+              {warnCount > 0 && (
+                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                  {warnCount} warnings
+                </Badge>
+              )}
+            </div>
+          }
+        />
 
-        {/* Controls */}
-        <div className="flex flex-col md:flex-row gap-3">
+        <AppPageSection className="gap-5">
+        <div className="flex flex-col gap-3 md:flex-row">
           <Select value={selectedProject} onValueChange={(v) => { setSelectedProject(v); setStreamLogs([]); setIsLiveTail(false); }}>
             <SelectTrigger className="w-full md:w-64 bg-card/50 border-border/50">
               <SelectValue placeholder="Select project..." />
@@ -260,7 +259,6 @@ export default function LogsPage() {
           </div>
         </div>
 
-        {/* Log viewer */}
         <Card className="border-border/50 bg-card/20">
           <CardHeader className="pb-3 border-b border-border/50">
             <CardTitle className="text-sm flex items-center justify-between">
@@ -333,7 +331,8 @@ export default function LogsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }

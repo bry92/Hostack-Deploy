@@ -1,21 +1,25 @@
 import { ProtectedLayout } from "@/components/layout/protected-layout";
+import { AppPage, AppPageHeader, AppPageSection } from "@/components/layout/app-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@workspace/auth-web";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Settings as SettingsIcon } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
 
   return (
     <ProtectedLayout>
-      <div className="flex flex-col gap-8 max-w-4xl mx-auto">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
-          <p className="text-muted-foreground mt-1">Manage your profile and platform preferences.</p>
-        </div>
+      <AppPage className="max-w-5xl">
+        <AppPageHeader
+          eyebrow="Settings"
+          icon={<SettingsIcon className="h-5 w-5" />}
+          title="Account Settings"
+          description="Review identity information, platform preferences, and the account-level controls that shape your Hostack workspace."
+        />
 
         <Card className="border-border/50">
           <CardHeader>
@@ -63,7 +67,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <AppPageSection className="grid gap-6 md:grid-cols-2">
           <Card className="border-border/50 bg-card/30">
             <CardHeader>
               <CardTitle>Billing & Plan</CardTitle>
@@ -89,8 +93,8 @@ export default function Settings() {
               <Button variant="outline" className="w-full border-dashed" disabled>Generate New Token</Button>
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </AppPageSection>
+      </AppPage>
     </ProtectedLayout>
   );
 }
