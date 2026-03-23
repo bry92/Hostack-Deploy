@@ -1711,7 +1711,20 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
         }
         queryClient.invalidateQueries({ queryKey: getListProjectDomainsQueryKey(projectId) });
       },
-      onError: (err) => toast({ title: "Verification failed", description: err.message, variant: "destructive" }),
+      onError: (err: unknown) => {
+        const responseData = typeof err === "object" && err !== null && "response" in err
+          ? (err as { response?: { data?: { error?: string; recordName?: string; expectedValue?: string } } }).response?.data
+          : undefined;
+        const message = responseData?.error ?? (err instanceof Error ? err.message : "DNS verification failed");
+        const recordHint = responseData?.recordName && responseData?.expectedValue
+          ? `Add TXT ${responseData.recordName} = ${responseData.expectedValue}`
+          : undefined;
+        toast({
+          title: "Verification failed",
+          description: recordHint ? `${message}. ${recordHint}` : message,
+          variant: "destructive",
+        });
+      },
     },
   });
 
@@ -1723,6 +1736,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
 
   const statusConfig: Record<string, { label: string; className: string }> = {
     pending: { label: "Pending", className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
+    pending_verification: { label: "Pending Verification", className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
     active: { label: "Active", className: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
     failed: { label: "Failed", className: "bg-red-500/10 text-red-400 border-red-500/20" },
   };
@@ -1762,8 +1776,13 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Added {formatDistanceToNow(new Date(d.createdAt), { addSuffix: true })}
-                      {d.verifiedAt && ` · Verified ${formatDistanceToNow(new Date(d.verifiedAt), { addSuffix: true })}`}
+                      {d.verifiedAt && ` | Verified ${formatDistanceToNow(new Date(d.verifiedAt), { addSuffix: true })}`}
                     </p>
+                    {d.status !== "active" && (
+                      <p className="text-[11px] text-muted-foreground mt-1 font-mono truncate">
+                        TXT _hostack-challenge.{d.domain} = {d.verificationToken}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -1801,20 +1820,38 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
           DNS Configuration
         </div>
         <p className="text-sm text-muted-foreground">
-          Point your domain to Hostack by adding a CNAME record:
+          Add both records for each domain before clicking Verify:
         </p>
-        <div className="bg-zinc-950 border border-border/50 rounded-lg p-3 font-mono text-xs space-y-1">
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground w-12">Type</span>
-            <span className="text-emerald-400">CNAME</span>
+        <div className="bg-zinc-950 border border-border/50 rounded-lg p-3 font-mono text-xs space-y-3">
+          <div className="space-y-1">
+            <div className="text-muted-foreground">Traffic Record</div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Type</span>
+              <span className="text-emerald-400">CNAME</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Name</span>
+              <span className="text-emerald-400">your-subdomain</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Value</span>
+              <span className="text-emerald-400">cname.hostack.app</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground w-12">Name</span>
-            <span className="text-emerald-400">your-subdomain</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground w-12">Value</span>
-            <span className="text-emerald-400">cname.hostack.app</span>
+          <div className="space-y-1 border-t border-white/10 pt-2">
+            <div className="text-muted-foreground">Ownership Verification</div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Type</span>
+              <span className="text-emerald-400">TXT</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Name</span>
+              <span className="text-emerald-400">_hostack-challenge.your-domain</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-muted-foreground w-12">Value</span>
+              <span className="text-emerald-400">verification token from row above</span>
+            </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">

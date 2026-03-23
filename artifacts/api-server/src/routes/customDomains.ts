@@ -3,8 +3,30 @@ import { db } from "@workspace/db";
 import { customDomainsTable, projectsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { resolveTxt } from "node:dns/promises";
 
 const router = Router();
+const domainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/;
+
+function getVerificationRecordName(domain: string) {
+  return `_hostack-challenge.${domain}`;
+}
+
+async function hasVerificationTxtRecord(domain: string, token: string) {
+  const recordName = getVerificationRecordName(domain);
+  try {
+    const records = await resolveTxt(recordName);
+    return records.some(parts => parts.join("").trim() === token);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error) {
+      const code = String((error as { code?: string }).code ?? "");
+      if (code === "ENODATA" || code === "ENOTFOUND" || code === "SERVFAIL" || code === "ETIMEOUT" || code === "EAI_AGAIN") {
+        return false;
+      }
+    }
+    throw error;
+  }
+}
 
 async function getOwnedProject(userId: string, projectId: string) {
   const [project] = await db
@@ -41,26 +63,29 @@ router.post("/projects/:projectId/domains", async (req, res) => {
   }
 
   const domainClean = domain.trim().toLowerCase();
-  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/.test(domainClean)) {
+  if (!domainRegex.test(domainClean)) {
     return res.status(400).json({ error: "Invalid domain format" });
   }
 
   const project = await getOwnedProject(userId, projectId);
   if (!project) return res.status(404).json({ error: "Project not found" });
 
-  const existing = await db
+  const [existing] = await db
     .select()
     .from(customDomainsTable)
-    .where(and(eq(customDomainsTable.projectId, projectId), eq(customDomainsTable.domain, domainClean)));
-  if (existing.length > 0) {
+    .where(eq(customDomainsTable.domain, domainClean))
+    .limit(1);
+
+  if (existing?.projectId === projectId) {
     return res.status(409).json({ error: "Domain already added to this project" });
   }
+  if (existing) return res.status(409).json({ error: "Domain is already attached to another project" });
 
   const verificationToken = randomBytes(32).toString("hex");
 
   const [created] = await db
     .insert(customDomainsTable)
-    .values({ projectId, domain: domainClean, verificationToken })
+    .values({ projectId, domain: domainClean, verificationToken, status: "pending_verification" })
     .returning();
 
   return res.status(201).json({ domain: created });
@@ -103,7 +128,7 @@ router.post("/projects/:projectId/domains/:domainId/verify", async (req, res) =>
     return res.json({ domain });
   }
 
-  const verified = Math.random() < 0.8;
+  const verified = await hasVerificationTxtRecord(domain.domain, domain.verificationToken);
 
   if (verified) {
     const [updated] = await db
@@ -115,10 +140,15 @@ router.post("/projects/:projectId/domains/:domainId/verify", async (req, res) =>
   } else {
     const [updated] = await db
       .update(customDomainsTable)
-      .set({ status: "failed" })
+      .set({ status: "pending_verification", verifiedAt: null })
       .where(eq(customDomainsTable.id, domainId))
       .returning();
-    return res.json({ domain: updated });
+    return res.status(409).json({
+      error: "Verification TXT record not found",
+      recordName: getVerificationRecordName(domain.domain),
+      expectedValue: domain.verificationToken,
+      domain: updated,
+    });
   }
 });
 
