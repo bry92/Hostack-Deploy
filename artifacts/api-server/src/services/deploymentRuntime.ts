@@ -191,18 +191,31 @@ export async function detectNodeStartCommand(artifactPath: string): Promise<stri
   const pkgPath = join(artifactPath, "package.json");
   if (await pathExists(pkgPath)) {
     const pkg = JSON.parse(await readFile(pkgPath, "utf8")) as {
+      main?: string;
       scripts?: Record<string, string>;
     };
     if (typeof pkg.scripts?.start === "string" && pkg.scripts.start.trim()) {
       return "npm run start";
     }
+    if (typeof pkg.main === "string" && pkg.main.trim()) {
+      const mainEntry = pkg.main.trim();
+      if (await pathExists(join(artifactPath, mainEntry))) {
+        return `node ${mainEntry}`;
+      }
+    }
   }
 
   const candidates = [
+    "dist/index.cjs",
+    "dist/server.cjs",
     "dist/index.js",
     "dist/server.js",
+    "build/index.cjs",
+    "build/server.cjs",
     "build/index.js",
     "build/server.js",
+    "server.cjs",
+    "index.cjs",
     "server.js",
     "index.js",
   ];
