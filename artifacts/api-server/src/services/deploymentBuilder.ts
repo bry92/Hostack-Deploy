@@ -339,7 +339,12 @@ function getLegacyPeerDepsInstallCommand(installCommand: string): string | null 
 
 function isPeerDependencyResolutionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /\bERESOLVE\b/i.test(message) || /unable to resolve dependency tree/i.test(message);
+  return (
+    /\bERESOLVE\b/i.test(message) ||
+    /unable to resolve dependency tree/i.test(message) ||
+    /retry\s+.*--legacy-peer-deps/i.test(message) ||
+    /Fix the upstream dependency conflict/i.test(message)
+  );
 }
 
 async function runInstallCommandWithRetry(
