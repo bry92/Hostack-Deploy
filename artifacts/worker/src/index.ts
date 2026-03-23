@@ -1,18 +1,22 @@
 import { hostname } from "node:os";
 import { pathToFileURL } from "node:url";
 import { db } from "@workspace/db";
+import { deploymentLogsTable } from "@workspace/db/schema";
+import { desc, eq } from "drizzle-orm";
 import {
   claimNextJob,
   completeJob,
   DEFAULT_JOB_LEASE_MS,
   failJob,
   recoverStaleJobs,
+  renewJobLease,
   type Job,
 } from "@workspace/queue";
 import { startDeploymentExecution } from "../../api-server/src/services/deploymentExecutor.ts";
 
 const POLL_INTERVAL_MS = 1000;
 const DEFAULT_STALE_SWEEP_INTERVAL_MS = 30 * 1000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = Math.max(1000, Math.floor(DEFAULT_JOB_LEASE_MS / 3));
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,6 +41,10 @@ const STALE_SWEEP_INTERVAL_MS = parsePositiveIntEnv(
   "HOSTACK_STALE_SWEEP_INTERVAL_MS",
   DEFAULT_STALE_SWEEP_INTERVAL_MS,
 );
+const HEARTBEAT_INTERVAL_MS = parsePositiveIntEnv(
+  "HOSTACK_JOB_HEARTBEAT_INTERVAL_MS",
+  DEFAULT_HEARTBEAT_INTERVAL_MS,
+);
 
 function getWorkerId(): string {
   const configuredWorkerId = process.env.HOSTACK_WORKER_ID?.trim();
@@ -56,8 +64,57 @@ function getDeploymentId(job: Job): string {
   return deploymentId;
 }
 
-async function processJob(job: Job): Promise<void> {
+async function appendWorkerLog(
+  deploymentId: string,
+  message: string,
+  level: "info" | "warn" | "error" | "success" = "warn",
+): Promise<void> {
+  const [latestLog] = await db
+    .select({ stepOrder: deploymentLogsTable.stepOrder })
+    .from(deploymentLogsTable)
+    .where(eq(deploymentLogsTable.deploymentId, deploymentId))
+    .orderBy(desc(deploymentLogsTable.stepOrder), desc(deploymentLogsTable.createdAt))
+    .limit(1);
+
+  await db.insert(deploymentLogsTable).values({
+    deploymentId,
+    logLevel: level,
+    message,
+    stepOrder: latestLog ? latestLog.stepOrder + 1 : 0,
+  });
+}
+
+function startLeaseHeartbeat(jobId: string, workerId: string): () => Promise<void> {
+  let active = true;
+
+  const loop = (async () => {
+    while (active) {
+      await sleep(HEARTBEAT_INTERVAL_MS);
+      if (!active) {
+        break;
+      }
+
+      try {
+        const renewed = await renewJobLease(db, jobId, workerId);
+        if (!renewed) {
+          console.warn(`[worker] heartbeat could not renew lease for job ${jobId}`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`[worker] heartbeat error for job ${jobId}: ${message}`);
+      }
+    }
+  })();
+
+  return async () => {
+    active = false;
+    await loop.catch(() => {});
+  };
+}
+
+async function processJob(job: Job, workerId: string): Promise<void> {
   console.log(`[worker] claimed job ${job.id} (${job.type})`);
+  const stopHeartbeat = startLeaseHeartbeat(job.id, workerId);
 
   try {
     switch (job.type) {
@@ -77,12 +134,14 @@ async function processJob(job: Job): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     await failJob(db, job.id, message);
     console.error(`[worker] failed job ${job.id} (${job.type}): ${message}`);
+  } finally {
+    await stopHeartbeat();
   }
 }
 
 export async function runWorkerLoop(workerId = getWorkerId()): Promise<never> {
   console.log(
-    `[worker] starting worker ${workerId} (lease ${JOB_LEASE_MS}ms, sweep ${STALE_SWEEP_INTERVAL_MS}ms)`,
+    `[worker] starting worker ${workerId} (lease ${JOB_LEASE_MS}ms, heartbeat ${HEARTBEAT_INTERVAL_MS}ms, sweep ${STALE_SWEEP_INTERVAL_MS}ms)`,
   );
 
   let lastStaleSweep = 0;
@@ -92,8 +151,26 @@ export async function runWorkerLoop(workerId = getWorkerId()): Promise<never> {
       const now = Date.now();
       if (now - lastStaleSweep >= STALE_SWEEP_INTERVAL_MS) {
         const recovered = await recoverStaleJobs(db, JOB_LEASE_MS);
-        if (recovered > 0) {
-          console.warn(`[worker] requeued ${recovered} stale job(s)`);
+        if (recovered.length > 0) {
+          console.warn(`[worker] requeued ${recovered.length} stale job(s)`);
+          for (const job of recovered) {
+            const deploymentId = typeof job.payload?.deploymentId === "string"
+              ? job.payload.deploymentId
+              : null;
+            if (!deploymentId) {
+              continue;
+            }
+
+            try {
+              await appendWorkerLog(
+                deploymentId,
+                "[worker] Job lease expired while processing; Hostack requeued this deployment automatically.",
+              );
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              console.error(`[worker] failed to append stale-job log for ${deploymentId}: ${message}`);
+            }
+          }
         }
         lastStaleSweep = now;
       }
@@ -105,7 +182,7 @@ export async function runWorkerLoop(workerId = getWorkerId()): Promise<never> {
         continue;
       }
 
-      await processJob(job);
+      await processJob(job, workerId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[worker] loop error: ${message}`);

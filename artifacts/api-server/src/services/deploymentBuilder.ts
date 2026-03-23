@@ -2,9 +2,12 @@ import { spawn } from "child_process";
 import { mkdtemp, rm, readFile, access, writeFile, readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { join, relative } from "path";
+import { Readable } from "stream";
+import { pipeline } from "stream/promises";
 import { db } from "@workspace/db";
 import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable, integrationsTable } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { x as extractTarball } from "tar";
 import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
   activateNodeDeployment,
@@ -171,6 +174,15 @@ function redactCommandForLogs(value: string): string {
     .replace(/(token=)([^&\s]+)/gi, "$1[REDACTED]");
 }
 
+function truncateForLogs(value: string, maxLength = 240): string {
+  const sanitized = sanitizeMessage(value);
+  if (sanitized.length <= maxLength) {
+    return sanitized;
+  }
+
+  return `${sanitized.slice(0, maxLength)}...`;
+}
+
 function runCommand(
   command: CommandInput,
   cwd: string,
@@ -268,6 +280,16 @@ function runCommand(
 
     proc.on("error", (err) => {
       clearTimeout(timeout);
+      const normalizedError = err as NodeJS.ErrnoException;
+      if (normalizedError.code === "ENOENT") {
+        reject(
+          new Error(
+            `Command '${parsed.cmd}' is not available in this worker environment`,
+          ),
+        );
+        return;
+      }
+
       reject(
         new Error(
           `Failed to start '${commandForLogs}': ${err.message}`,
@@ -615,35 +637,47 @@ function parseGitHubUrl(repoUrl: string): { owner: string; repo: string } | null
 async function downloadAndExtract(
   url: string,
   destDir: string,
-  deploymentId: string,
-  stepOrderRef: { value: number },
   token?: string | null,
 ): Promise<boolean> {
-  const tarPath = `${destDir}/../_archive_${deploymentId.slice(0, 8)}.tar.gz`;
-  const curlArgs = ["-sSL", "--fail", "--max-time", "120"];
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "Hostack",
+  };
   if (token) {
-    curlArgs.push("-H", `Authorization: Bearer ${token}`);
-    curlArgs.push("-H", "Accept: application/vnd.github+json");
+    headers.Authorization = `Bearer ${token}`;
   }
-  curlArgs.push("-o", tarPath, url);
 
-  try {
-    await runCommand(
-      { cmd: "curl", args: curlArgs, shell: false },
-      destDir,
-      deploymentId,
-      stepOrderRef,
+  const response = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    let details = "";
+    try {
+      details = truncateForLogs(await response.text());
+    } catch {
+      details = "";
+    }
+
+    throw new Error(
+      `Archive download failed with ${response.status}${details ? `: ${details}` : ""}`,
     );
-    await runCommand(
-      { cmd: "tar", args: ["-xzf", tarPath, "--strip-components=1", "-C", destDir], shell: false },
-      destDir,
-      deploymentId,
-      stepOrderRef,
-    );
-    return true;
-  } finally {
-    await rm(tarPath, { force: true }).catch(() => {});
   }
+
+  if (!response.body) {
+    throw new Error("Archive download returned an empty response body");
+  }
+
+  await pipeline(
+    Readable.fromWeb(response.body as globalThis.ReadableStream<Uint8Array>),
+    extractTarball({
+      cwd: destDir,
+      strip: 1,
+    }),
+  );
+
+  return true;
 }
 
 async function cloneRepo(
@@ -665,7 +699,7 @@ async function cloneRepo(
         ? `https://api.github.com/repos/${gh.owner}/${gh.repo}/tarball/${commitHash}`
         : `https://codeload.github.com/${gh.owner}/${gh.repo}/tar.gz/${commitHash}`;
       try {
-        await downloadAndExtract(tarUrl, workDir, deploymentId, stepOrderRef, githubToken);
+        await downloadAndExtract(tarUrl, workDir, githubToken);
         return;
       } catch (error) {
         lastArchiveError = error instanceof Error ? error : new Error(String(error));
@@ -678,7 +712,7 @@ async function cloneRepo(
         ? `https://api.github.com/repos/${gh.owner}/${gh.repo}/tarball/${candidateBranch}`
         : `https://codeload.github.com/${gh.owner}/${gh.repo}/tar.gz/refs/heads/${candidateBranch}`;
       try {
-        await downloadAndExtract(tarUrl, workDir, deploymentId, stepOrderRef, githubToken);
+        await downloadAndExtract(tarUrl, workDir, githubToken);
         return;
       } catch (error) {
         lastArchiveError = error instanceof Error ? error : new Error(String(error));

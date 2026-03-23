@@ -12,7 +12,7 @@ const STALE_JOB_MESSAGE =
 export async function recoverStaleJobs(
   db: QueueDb,
   leaseMs = DEFAULT_JOB_LEASE_MS,
-): Promise<number> {
+): Promise<Job[]> {
   const expiredBefore = new Date(Date.now() - leaseMs);
 
   const recovered = await db
@@ -30,9 +30,9 @@ export async function recoverStaleJobs(
         lte(jobsTable.lockedAt, expiredBefore),
       ),
     )
-    .returning({ id: jobsTable.id });
+    .returning();
 
-  return recovered.length;
+  return recovered as Job[];
 }
 
 export async function claimNextJob(
@@ -90,6 +90,28 @@ export async function completeJob(
       lastError: null,
     })
     .where(eq(jobsTable.id, jobId));
+}
+
+export async function renewJobLease(
+  db: QueueDb,
+  jobId: string,
+  workerId: string,
+): Promise<boolean> {
+  const [renewed] = await db
+    .update(jobsTable)
+    .set({
+      lockedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(jobsTable.id, jobId),
+        eq(jobsTable.status, "processing"),
+        eq(jobsTable.lockedBy, workerId),
+      ),
+    )
+    .returning({ id: jobsTable.id });
+
+  return Boolean(renewed);
 }
 
 export async function failJob(

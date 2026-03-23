@@ -21,6 +21,7 @@
     "express": "^5",
     "openai": "^6.29.0",
     "openid-client": "^6.8.2",
+    "tar": "^7.4.3",
     "zod": "catalog:"
   },
   "devDependencies": {
