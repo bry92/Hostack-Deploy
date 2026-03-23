@@ -183,6 +183,14 @@ function truncateForLogs(value: string, maxLength = 240): string {
   return `${sanitized.slice(0, maxLength)}...`;
 }
 
+function summarizeCommandFailure(stderrLines: string[]): string {
+  if (stderrLines.length === 0) {
+    return "";
+  }
+
+  return truncateForLogs(stderrLines.join(" | "), 320);
+}
+
 function runCommand(
   command: CommandInput,
   cwd: string,
@@ -234,10 +242,17 @@ function runCommand(
     const pendingLogs: Promise<void>[] = [];
     let stdoutBuf = "";
     let stderrBuf = "";
+    const recentStderrLines: string[] = [];
 
     const flush = (line: string, level: LogLevel) => {
       const sanitized = sanitizeMessage(line);
       if (!sanitized) return;
+      if (level === "error") {
+        recentStderrLines.push(sanitized);
+        if (recentStderrLines.length > 12) {
+          recentStderrLines.shift();
+        }
+      }
       pendingLogs.push(insertLog(deploymentId, sanitized, level, stepOrderRef).catch(console.error));
     };
 
@@ -273,7 +288,7 @@ function runCommand(
       }
       reject(
         new Error(
-          `Command '${commandForLogs}' exited with code ${code}`,
+          `Command '${commandForLogs}' exited with code ${code}${summarizeCommandFailure(recentStderrLines) ? `: ${summarizeCommandFailure(recentStderrLines)}` : ""}`,
         ),
       );
     });
@@ -310,6 +325,23 @@ function isRetryableInstallError(error: unknown): boolean {
   );
 }
 
+function getLegacyPeerDepsInstallCommand(installCommand: string): string | null {
+  if (!/^npm install\b/i.test(installCommand.trim())) {
+    return null;
+  }
+
+  if (/\s--legacy-peer-deps\b/i.test(installCommand) || /\s--force\b/i.test(installCommand)) {
+    return null;
+  }
+
+  return `${installCommand} --legacy-peer-deps`;
+}
+
+function isPeerDependencyResolutionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /\bERESOLVE\b/i.test(message) || /unable to resolve dependency tree/i.test(message);
+}
+
 async function runInstallCommandWithRetry(
   installCommand: string,
   cwd: string,
@@ -317,16 +349,36 @@ async function runInstallCommandWithRetry(
   stepOrderRef: { value: number },
 ): Promise<void> {
   let lastError: Error | null = null;
+  let resolvedInstallCommand = installCommand;
+  let attemptedLegacyPeerDepsFallback = false;
+  const legacyPeerDepsInstallCommand = getLegacyPeerDepsInstallCommand(installCommand);
 
   for (let attempt = 1; attempt <= MAX_INSTALL_ATTEMPTS; attempt += 1) {
     try {
-      await runCommand(installCommand, cwd, deploymentId, stepOrderRef, {
+      await runCommand(resolvedInstallCommand, cwd, deploymentId, stepOrderRef, {
         timeoutMs: INSTALL_TIMEOUT_MS,
       });
       return;
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
       lastError = normalizedError;
+
+      if (
+        !attemptedLegacyPeerDepsFallback &&
+        legacyPeerDepsInstallCommand &&
+        isPeerDependencyResolutionError(normalizedError)
+      ) {
+        attemptedLegacyPeerDepsFallback = true;
+        resolvedInstallCommand = legacyPeerDepsInstallCommand;
+
+        await insertLog(
+          deploymentId,
+          "npm reported a peer dependency resolution conflict. Retrying install with --legacy-peer-deps.",
+          "warn",
+          stepOrderRef,
+        );
+        continue;
+      }
 
       if (attempt >= MAX_INSTALL_ATTEMPTS || !isRetryableInstallError(normalizedError)) {
         throw normalizedError;
