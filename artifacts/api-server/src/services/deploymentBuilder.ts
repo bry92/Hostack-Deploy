@@ -326,7 +326,7 @@ function isRetryableInstallError(error: unknown): boolean {
 }
 
 function getLegacyPeerDepsInstallCommand(installCommand: string): string | null {
-  if (!/^npm install\b/i.test(installCommand.trim())) {
+  if (!/^npm\s+(install|ci)\b/i.test(installCommand.trim())) {
     return null;
   }
 
@@ -335,6 +335,15 @@ function getLegacyPeerDepsInstallCommand(installCommand: string): string | null 
   }
 
   return `${installCommand} --legacy-peer-deps`;
+}
+
+function getNpmInstallFallbackCommand(installCommand: string): string | null {
+  if (!/^npm ci\b/i.test(installCommand.trim())) {
+    return null;
+  }
+
+  const preserveLegacyPeerDeps = /\s--legacy-peer-deps\b/i.test(installCommand);
+  return `npm install --prefer-offline --no-audit --no-fund${preserveLegacyPeerDeps ? " --legacy-peer-deps" : ""}`;
 }
 
 function isPeerDependencyResolutionError(error: unknown): boolean {
@@ -347,6 +356,19 @@ function isPeerDependencyResolutionError(error: unknown): boolean {
   );
 }
 
+function isNpmCiLockfileError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /\bnpm ci\b/i.test(message) &&
+    (
+      /package-lock\.json/i.test(message) ||
+      /npm-shrinkwrap\.json/i.test(message) ||
+      /\bin sync\b/i.test(message) ||
+      /\bEUSAGE\b/i.test(message)
+    )
+  );
+}
+
 async function runInstallCommandWithRetry(
   installCommand: string,
   cwd: string,
@@ -356,7 +378,9 @@ async function runInstallCommandWithRetry(
   let lastError: Error | null = null;
   let resolvedInstallCommand = installCommand;
   let attemptedLegacyPeerDepsFallback = false;
+  let attemptedNpmInstallFallback = false;
   const legacyPeerDepsInstallCommand = getLegacyPeerDepsInstallCommand(installCommand);
+  const npmInstallFallbackCommand = getNpmInstallFallbackCommand(installCommand);
 
   for (let attempt = 1; attempt <= MAX_INSTALL_ATTEMPTS; attempt += 1) {
     try {
@@ -367,6 +391,23 @@ async function runInstallCommandWithRetry(
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
       lastError = normalizedError;
+
+      if (
+        !attemptedNpmInstallFallback &&
+        npmInstallFallbackCommand &&
+        isNpmCiLockfileError(normalizedError)
+      ) {
+        attemptedNpmInstallFallback = true;
+        resolvedInstallCommand = npmInstallFallbackCommand;
+
+        await insertLog(
+          deploymentId,
+          "npm ci could not use the lockfile cleanly. Retrying with npm install.",
+          "warn",
+          stepOrderRef,
+        );
+        continue;
+      }
 
       if (
         !attemptedLegacyPeerDepsFallback &&
@@ -423,6 +464,11 @@ interface ProjectRootCandidate {
 }
 
 type PackageManager = "npm" | "pnpm" | "yarn";
+type PackageManagerResolution = {
+  hasLockfile: boolean;
+  installCwd: string;
+  packageManager: PackageManager;
+};
 type PackageJsonData = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -619,10 +665,10 @@ async function findProjectRoot(repoDir: string, preferredRoot = ""): Promise<Pro
   return candidates[0];
 }
 
-async function detectPackageManager(buildRoot: string, repoDir: string): Promise<{
-  installCwd: string;
-  packageManager: PackageManager;
-}> {
+async function detectPackageManager(
+  buildRoot: string,
+  repoDir: string,
+): Promise<PackageManagerResolution> {
   const installRoots = [buildRoot];
   if (buildRoot !== repoDir) {
     installRoots.push(repoDir);
@@ -630,19 +676,32 @@ async function detectPackageManager(buildRoot: string, repoDir: string): Promise
 
   for (const installRoot of installRoots) {
     if (await fileExists(join(installRoot, "pnpm-lock.yaml"))) {
-      return { installCwd: installRoot, packageManager: "pnpm" };
+      return { installCwd: installRoot, packageManager: "pnpm", hasLockfile: true };
     }
     if (await fileExists(join(installRoot, "yarn.lock"))) {
-      return { installCwd: installRoot, packageManager: "yarn" };
+      return { installCwd: installRoot, packageManager: "yarn", hasLockfile: true };
+    }
+    if (
+      await fileExists(join(installRoot, "package-lock.json")) ||
+      await fileExists(join(installRoot, "npm-shrinkwrap.json"))
+    ) {
+      return { installCwd: installRoot, packageManager: "npm", hasLockfile: true };
     }
   }
 
-  return { installCwd: buildRoot, packageManager: "npm" };
+  return { installCwd: buildRoot, packageManager: "npm", hasLockfile: false };
 }
 
-function getInstallCommand(packageManager: PackageManager): string {
-  if (packageManager === "pnpm") return "pnpm install";
-  if (packageManager === "yarn") return "yarn install";
+function getInstallCommand(packageManager: PackageManager, hasLockfile: boolean): string {
+  if (packageManager === "pnpm") {
+    return hasLockfile ? "pnpm install --frozen-lockfile" : "pnpm install";
+  }
+  if (packageManager === "yarn") {
+    return hasLockfile ? "yarn install --frozen-lockfile" : "yarn install";
+  }
+  if (hasLockfile) {
+    return "npm ci --no-audit --no-fund";
+  }
   return "npm install --prefer-offline --no-audit --no-fund";
 }
 
@@ -670,7 +729,7 @@ async function resolveDeploymentPlan(repoDir: string, preferredRoot = ""): Promi
     buildRootRelative: toLogRelativePath(repoDir, buildRoot),
     framework: candidate.framework,
     hasBuildScript: candidate.hasBuildScript,
-    installCommand: getInstallCommand(packageManager.packageManager),
+    installCommand: getInstallCommand(packageManager.packageManager, packageManager.hasLockfile),
     installCwd: packageManager.installCwd,
     installCwdRelative: toLogRelativePath(repoDir, packageManager.installCwd),
     packageManager: packageManager.packageManager,
