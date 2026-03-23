@@ -143,12 +143,12 @@ export default function ProjectDetail() {
     <ProtectedLayout>
       <AppPage>
         {showAutoDeployBanner && (
-          <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-300">
-            <Zap className="w-4 h-4 flex-shrink-0 text-blue-400" />
+          <div className="flex items-center gap-3 rounded-lg border border-zinc-300/70 bg-zinc-200/50 p-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300">
+            <Zap className="w-4 h-4 flex-shrink-0 text-zinc-500 dark:text-zinc-400" />
             <span>
               <strong>Auto-deploy is enabled.</strong> On a real git push to this branch, this deployment would fire automatically — no manual trigger needed.
             </span>
-            <button onClick={() => setShowAutoDeployBanner(false)} className="ml-auto text-blue-400 hover:text-blue-300">
+            <button onClick={() => setShowAutoDeployBanner(false)} className="ml-auto text-zinc-500 transition-colors hover:text-zinc-800 dark:hover:text-zinc-100">
               <XCircle className="w-4 h-4" />
             </button>
           </div>
