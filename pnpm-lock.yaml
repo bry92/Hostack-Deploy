@@ -223,6 +223,9 @@ importers:
       openid-client:
         specifier: ^6.8.2
         version: 6.8.2
+      semver:
+        specifier: ^7.7.3
+        version: 7.7.4
       tar:
         specifier: ^7.4.3
         version: 7.5.12

@@ -7,6 +7,7 @@ import { pipeline } from "stream/promises";
 import { db } from "@workspace/db";
 import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable, integrationsTable } from "@workspace/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { coerce, satisfies, validRange } from "semver";
 import { x as extractTarball } from "tar";
 import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
@@ -469,10 +470,21 @@ type PackageManagerResolution = {
   installCwd: string;
   packageManager: PackageManager;
 };
+type NodeVersionRequirement = {
+  normalizedSpec: string | null;
+  raw: string;
+  source: string;
+};
 type PackageJsonData = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
+  engines?: {
+    node?: string;
+  };
   scripts?: Record<string, string>;
+  volta?: {
+    node?: string;
+  };
 };
 
 type ResolvedDeploymentPlan = {
@@ -522,6 +534,106 @@ async function readPackageJson(dir: string): Promise<PackageJsonData | null> {
   } catch {
     return null;
   }
+}
+
+function normalizeNodeVersionFileSpec(raw: string): string | null {
+  const trimmed = raw.trim().replace(/^v/, "");
+  if (!trimmed) {
+    return null;
+  }
+
+  const directRange = validRange(trimmed);
+  if (directRange) {
+    return directRange;
+  }
+  if (/^\d+$/.test(trimmed)) {
+    return `${trimmed}.x`;
+  }
+  if (/^\d+\.\d+$/.test(trimmed)) {
+    return `${trimmed}.x`;
+  }
+
+  const coerced = coerce(trimmed);
+  if (coerced) {
+    return `${coerced.major}.x`;
+  }
+
+  return null;
+}
+
+function normalizeNodeVersionPackageSpec(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const range = validRange(trimmed);
+  if (range) {
+    return range;
+  }
+
+  return normalizeNodeVersionFileSpec(trimmed);
+}
+
+async function readFirstLineIfExists(path: string): Promise<string | null> {
+  if (!(await fileExists(path))) {
+    return null;
+  }
+
+  const content = await readFile(path, "utf8");
+  const firstLine = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0 && !line.startsWith("#"));
+
+  return firstLine ?? null;
+}
+
+async function detectNodeVersionRequirement(
+  buildRoot: string,
+  repoDir: string,
+): Promise<NodeVersionRequirement | null> {
+  const dirs = buildRoot === repoDir ? [buildRoot] : [buildRoot, repoDir];
+
+  for (const dir of dirs) {
+    const pkg = await readPackageJson(dir);
+    if (pkg?.volta?.node?.trim()) {
+      return {
+        raw: pkg.volta.node.trim(),
+        normalizedSpec: normalizeNodeVersionPackageSpec(pkg.volta.node),
+        source: `${toLogRelativePath(repoDir, dir)}/package.json#volta.node`,
+      };
+    }
+    if (pkg?.engines?.node?.trim()) {
+      return {
+        raw: pkg.engines.node.trim(),
+        normalizedSpec: normalizeNodeVersionPackageSpec(pkg.engines.node),
+        source: `${toLogRelativePath(repoDir, dir)}/package.json#engines.node`,
+      };
+    }
+  }
+
+  for (const dir of dirs) {
+    const nvmrc = await readFirstLineIfExists(join(dir, ".nvmrc"));
+    if (nvmrc) {
+      return {
+        raw: nvmrc,
+        normalizedSpec: normalizeNodeVersionFileSpec(nvmrc),
+        source: `${toLogRelativePath(repoDir, dir)}/.nvmrc`,
+      };
+    }
+
+    const nodeVersion = await readFirstLineIfExists(join(dir, ".node-version"));
+    if (nodeVersion) {
+      return {
+        raw: nodeVersion,
+        normalizedSpec: normalizeNodeVersionFileSpec(nodeVersion),
+        source: `${toLogRelativePath(repoDir, dir)}/.node-version`,
+      };
+    }
+  }
+
+  return null;
 }
 
 function getAllDependencies(pkg: PackageJsonData): Record<string, string> {
@@ -1064,11 +1176,37 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
       detectedBuildCommand;
     const buildCommand = explicitBuildCommand ?? "";
     let runtimeKind: RuntimeKind | null = resolvedPlan.runtimeHint;
+    const nodeVersionRequirement = await detectNodeVersionRequirement(buildRoot, workDir);
+    const workerNodeVersion = process.versions.node;
 
     await log(`Selected project root: ${resolvedPlan.buildRootRelative}`);
     await log(`Selected package manager: ${resolvedPlan.packageManager}`);
     await log(`Selected install root: ${resolvedPlan.installCwdRelative}`);
     await log(`Resolved framework: ${frameworkType}`);
+    await log(`Worker Node version: ${workerNodeVersion}`);
+    if (nodeVersionRequirement) {
+      await log(
+        `Detected Node requirement: ${nodeVersionRequirement.raw} (${nodeVersionRequirement.source})`,
+      );
+
+      if (nodeVersionRequirement.normalizedSpec) {
+        const compatible = satisfies(workerNodeVersion, nodeVersionRequirement.normalizedSpec, {
+          includePrerelease: true,
+        });
+        await log(`Node compatibility: ${compatible ? "compatible" : "mismatch"}`);
+
+        if (!compatible) {
+          failureReason =
+            `Node version mismatch: project requests ${nodeVersionRequirement.raw} via ${nodeVersionRequirement.source}, but worker is running Node ${workerNodeVersion}`;
+          throw new Error(failureReason);
+        }
+      } else {
+        await log(
+          `Node version requirement format is not enforceable yet; continuing with Node ${workerNodeVersion}.`,
+          "warn",
+        );
+      }
+    }
     await log(`Runtime hint: ${runtimeKind ?? "ambiguous"}`);
     await log(`Resolved install command: ${installCommand}`);
     await log(`Resolved build command: ${explicitBuildCommand ?? "none"}`);
