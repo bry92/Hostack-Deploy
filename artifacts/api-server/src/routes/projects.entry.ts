@@ -111,6 +111,19 @@ async function getRepoDefaultBranch(
   return repoInfo?.default_branch?.trim() || "main";
 }
 
+async function forwardToFullProjectsRouter(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { default: fullProjectsRouter } = await import("./projects.js");
+    fullProjectsRouter(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+}
+
 router.get("/projects", async (req: Request, res: Response, next: NextFunction) => {
   if (IS_FALLBACK) {
     res.json([
@@ -119,12 +132,25 @@ router.get("/projects", async (req: Request, res: Response, next: NextFunction) 
     return;
   }
 
-  try {
-    const { default: fullProjectsRouter } = await import("./projects.js");
-    fullProjectsRouter(req, res, next);
-  } catch (error) {
-    next(error);
+  await forwardToFullProjectsRouter(req, res, next);
+});
+
+router.get("/projects/:projectId", async (req: Request, res: Response, next: NextFunction) => {
+  if (IS_FALLBACK) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
   }
+
+  await forwardToFullProjectsRouter(req, res, next);
+});
+
+router.put("/projects/:projectId", async (req: Request, res: Response, next: NextFunction) => {
+  if (IS_FALLBACK) {
+    res.status(404).json({ error: "project_not_found" });
+    return;
+  }
+
+  await forwardToFullProjectsRouter(req, res, next);
 });
 
 router.post("/projects", async (req: Request, res: Response) => {
