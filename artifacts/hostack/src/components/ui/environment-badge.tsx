@@ -5,14 +5,14 @@ export function EnvironmentBadge({ environment }: { environment?: string | null 
 
   if (environment === "production") {
     return (
-      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-medium text-xs">
+      <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
         Production
       </Badge>
     );
   }
 
   return (
-    <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 font-medium text-xs">
+    <Badge variant="outline" className="border-violet-500/20 bg-violet-500/10 text-violet-300">
       Preview
     </Badge>
   );

@@ -25,40 +25,40 @@ export default function Dashboard() {
           title="Overview"
           description="Monitor project health, recent deployments, and the current state of your platform from one place."
           actions={
-            <Button onClick={() => setLocation("/projects?new=true")} className="shadow-md shadow-primary/20">
+            <Button onClick={() => setLocation("/projects?new=true")}>
               <Plus className="mr-2 h-4 w-4" /> New Project
             </Button>
           }
         />
 
         <AppPageSection className="grid gap-4 md:grid-cols-3">
-          <Card className="hover-elevate transition-all border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
-              <FolderGit2 className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-zinc-400">Total Projects</CardTitle>
+              <FolderGit2 className="h-4 w-4 text-zinc-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{statsLoading ? "--" : stats?.totalProjects || 0}</div>
+              <div className="text-3xl font-semibold text-white">{statsLoading ? "--" : stats?.totalProjects || 0}</div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate transition-all border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Deployments</CardTitle>
-              <Activity className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-zinc-400">Total Deployments</CardTitle>
+              <Activity className="h-4 w-4 text-zinc-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{statsLoading ? "--" : stats?.totalDeployments || 0}</div>
+              <div className="text-3xl font-semibold text-white">{statsLoading ? "--" : stats?.totalDeployments || 0}</div>
             </CardContent>
           </Card>
-          <Card className="hover-elevate transition-all border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Latest Status</CardTitle>
-              <Rocket className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-zinc-400">Latest Status</CardTitle>
+              <Rocket className="h-4 w-4 text-zinc-400" />
             </CardHeader>
             <CardContent>
               <div className="mt-1">
                 {statsLoading ? (
-                  <div className="h-6 w-20 bg-muted animate-pulse rounded-md" />
+                  <div className="h-6 w-20 animate-pulse rounded-lg bg-zinc-800" />
                 ) : (
                   <StatusBadge status={stats?.latestDeploymentStatus} />
                 )}
@@ -68,34 +68,33 @@ export default function Dashboard() {
         </AppPageSection>
 
         <AppPageSection className="grid gap-6 xl:grid-cols-2">
-          {/* Recent Deployments */}
-          <Card className="border-border/50">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-lg font-semibold">Recent Deployments</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/deployments")} className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/deployments")}>
                 View All <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </CardHeader>
             <CardContent>
               {statsLoading ? (
                 <div className="space-y-4">
-                  {[1, 2, 3].map(i => <div key={i} className="h-12 bg-muted/50 animate-pulse rounded-md" />)}
+                  {[1, 2, 3].map((i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-zinc-800" />)}
                 </div>
               ) : stats?.recentDeployments?.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No deployments yet</div>
+                <div className="py-8 text-center text-zinc-400">No deployments yet</div>
               ) : (
                 <div className="space-y-4">
                   {stats?.recentDeployments?.map(dep => (
                     <Link key={dep.id} href={`/projects/${dep.projectId}/deployments/${dep.id}`}>
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                      <div className="group flex cursor-pointer items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-colors hover:bg-zinc-800">
                         <div className="flex items-center gap-3">
                           <StatusBadge status={dep.status} />
                           <div>
-                            <p className="font-medium text-sm group-hover:text-primary transition-colors">{dep.projectName || 'Project'}</p>
-                            <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(dep.createdAt), { addSuffix: true })}</p>
+                            <p className="text-sm font-medium text-white transition-colors group-hover:text-violet-400">{dep.projectName || 'Project'}</p>
+                            <p className="text-xs text-zinc-400">{formatDistanceToNow(new Date(dep.createdAt), { addSuffix: true })}</p>
                           </div>
                         </div>
-                        <div className="text-xs px-2 py-1 bg-white/5 rounded text-muted-foreground">
+                        <div className="rounded-full border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-400">
                           {dep.environment}
                         </div>
                       </div>
@@ -106,35 +105,34 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Recent Projects */}
-          <Card className="border-border/50">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="text-lg font-semibold">Your Projects</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/projects")} className="text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/projects")}>
                 View All <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </CardHeader>
             <CardContent>
               {projectsLoading ? (
                 <div className="space-y-4">
-                  {[1, 2].map(i => <div key={i} className="h-16 bg-muted/50 animate-pulse rounded-md" />)}
+                  {[1, 2].map((i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-zinc-800" />)}
                 </div>
               ) : recentProjects.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground mb-4">No projects created yet.</p>
+                  <p className="mb-4 text-zinc-400">No projects created yet.</p>
                   <Button variant="outline" onClick={() => setLocation("/projects?new=true")}>Create First Project</Button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {recentProjects.map(project => (
                     <Link key={project.id} href={`/projects/${project.id}`}>
-                      <div className="flex items-center gap-4 p-4 rounded-lg border border-border/50 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-md bg-white/5 flex items-center justify-center text-foreground border border-white/10">
+                      <div className="group flex cursor-pointer items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4 transition-colors hover:bg-zinc-800">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-white">
                           <FrameworkIcon framework={project.framework} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">{project.name}</h4>
-                          <p className="text-xs text-muted-foreground truncate">{project.repoUrl || 'No repository linked'}</p>
+                          <h4 className="truncate font-semibold text-white transition-colors group-hover:text-violet-400">{project.name}</h4>
+                          <p className="truncate text-xs text-zinc-400">{project.repoUrl || 'No repository linked'}</p>
                         </div>
                         <StatusBadge status={project.latestDeploymentStatus} />
                       </div>

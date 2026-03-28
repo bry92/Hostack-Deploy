@@ -58,7 +58,7 @@ export default function DeploymentDetail() {
   if (isLoadingDeployment) {
     return (
       <ProtectedLayout>
-        <div className="h-64 animate-pulse rounded-xl bg-card" />
+        <div className="h-64 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
       </ProtectedLayout>
     );
   }
@@ -66,7 +66,7 @@ export default function DeploymentDetail() {
   if (!deployment) {
     return (
       <ProtectedLayout>
-        <div className="p-8 text-muted-foreground">Deployment not found</div>
+        <div className="p-8 text-zinc-400">Deployment not found</div>
       </ProtectedLayout>
     );
   }
@@ -92,7 +92,7 @@ export default function DeploymentDetail() {
       <AppPage>
         <Link
           href={`/projects/${projectId}`}
-          className="inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex items-center text-sm text-zinc-400 transition-colors hover:text-white"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back to Project
@@ -104,14 +104,14 @@ export default function DeploymentDetail() {
           title={
             <span className="flex items-center gap-3">
               <span>Deployment</span>
-              <span className="text-base font-normal text-zinc-500 dark:text-zinc-400">#{deployment.id.slice(0, 8)}</span>
+              <span className="text-base font-normal text-zinc-500">#{deployment.id.slice(0, 8)}</span>
             </span>
           }
           description="Inspect build progress, artifact status, runtime readiness, and the exact logs that led to this deployment outcome."
           actions={
             <div className="flex flex-wrap items-center gap-3">
               {isRunning ? (
-                <span className="flex items-center gap-1 text-xs text-blue-400 animate-pulse">
+                <span className="flex items-center gap-1 text-xs text-violet-400 animate-pulse">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Live
                 </span>
@@ -144,7 +144,7 @@ export default function DeploymentDetail() {
               <div className="flex min-w-0 items-center gap-3">
                 <Globe className="h-5 w-5 flex-shrink-0 text-emerald-400" />
                 <div className="min-w-0">
-                  <p className="mb-0.5 text-xs text-muted-foreground">Preview URL</p>
+                  <p className="mb-0.5 text-xs text-zinc-400">Preview URL</p>
                   <p className="truncate font-mono text-sm text-emerald-400">{deployment.deploymentUrl}</p>
                 </div>
               </div>
@@ -163,9 +163,9 @@ export default function DeploymentDetail() {
         )}
 
         <AppPageSection className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card className="border-border/50 bg-card/50">
+          <Card className="hover:bg-zinc-900">
             <CardContent className="flex flex-col justify-center gap-1 p-4">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
                 <Calendar className="h-3 w-3" />
                 Date
               </span>
@@ -174,18 +174,18 @@ export default function DeploymentDetail() {
               </span>
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50">
+          <Card className="hover:bg-zinc-900">
             <CardContent className="flex flex-col justify-center gap-1 p-4">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
                 <Terminal className="h-3 w-3" />
                 Environment
               </span>
               <span className="text-sm font-medium capitalize">{deployment.environment}</span>
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50">
+          <Card className="hover:bg-zinc-900">
             <CardContent className="flex flex-col justify-center gap-1 p-4">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
                 <Clock className="h-3 w-3" />
                 Duration
               </span>
@@ -194,9 +194,9 @@ export default function DeploymentDetail() {
               </span>
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/50">
+          <Card className="hover:bg-zinc-900">
             <CardContent className="flex flex-col justify-center gap-1 p-4">
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1 text-xs text-zinc-400">
                 <Zap className="h-3 w-3" />
                 Trigger
               </span>
@@ -206,12 +206,12 @@ export default function DeploymentDetail() {
         </AppPageSection>
 
         {(deployment.commitHash || deployment.commitMessage) && (
-          <Card className="border-border/50 bg-card/50">
+          <Card className="hover:bg-zinc-900">
             <CardContent className="flex items-center gap-4 p-4">
-              <GitCommit className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+              <GitCommit className="h-5 w-5 flex-shrink-0 text-zinc-400" />
               <div className="min-w-0">
                 {deployment.commitHash && (
-                  <p className="mb-0.5 font-mono text-xs text-muted-foreground">
+                  <p className="mb-0.5 font-mono text-xs text-zinc-400">
                     {deployment.commitHash.slice(0, 8)}
                     {deployment.branch && (
                       <span className="ml-2 items-center gap-1 font-sans text-zinc-500">
@@ -229,13 +229,13 @@ export default function DeploymentDetail() {
           </Card>
         )}
 
-        <Card className="border-border/50 bg-card/30">
+        <Card className="hover:bg-zinc-900">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Terminal className="h-4 w-4" />
               Build Logs
               {isRunning && (
-                <span className="ml-auto flex items-center gap-1 text-xs font-normal text-blue-400">
+                <span className="ml-auto flex items-center gap-1 text-xs font-normal text-violet-400">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Streaming live
                 </span>
@@ -243,11 +243,11 @@ export default function DeploymentDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[600px] overflow-y-auto rounded-b-xl border-t border-border/50 bg-zinc-950 p-4 font-mono text-xs leading-relaxed">
+            <div className="max-h-[600px] overflow-y-auto rounded-b-xl border-t border-zinc-800 bg-black p-4 font-mono text-sm leading-relaxed text-green-400">
               {logs.length === 0 ? (
-                <div className="py-4 text-center text-zinc-600">
+                <div className="py-4 text-center text-zinc-500">
                   {isRunning ? (
-                    <span className="flex items-center justify-center gap-2 text-blue-400 animate-pulse">
+                    <span className="flex items-center justify-center gap-2 text-violet-400 animate-pulse">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Waiting for build output...
                     </span>
@@ -257,18 +257,18 @@ export default function DeploymentDetail() {
                 </div>
               ) : (
                 logs.map((log) => {
-                  let colorClass = "text-zinc-300";
+                  let colorClass = "text-green-400";
                   if (log.logLevel === "error") colorClass = "text-red-400";
                   if (log.logLevel === "warn") colorClass = "text-yellow-400";
                   if (log.logLevel === "success") colorClass = "text-emerald-400";
-                  if (log.logLevel === "info") colorClass = "text-zinc-400";
+                  if (log.logLevel === "info") colorClass = "text-blue-400";
 
                   return (
                     <div
                       key={log.id}
-                      className="flex gap-4 rounded px-2 py-0.5 transition-colors hover:bg-white/5"
+                      className="flex gap-4 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-900"
                     >
-                      <span className="mt-0.5 w-20 flex-shrink-0 select-none text-xs text-zinc-700">
+                      <span className="mt-0.5 w-20 flex-shrink-0 select-none text-xs text-zinc-600">
                         {format(new Date(log.createdAt), "HH:mm:ss")}
                       </span>
                       <span className={`${colorClass} whitespace-pre-wrap break-all`}>{log.message}</span>
@@ -278,8 +278,8 @@ export default function DeploymentDetail() {
               )}
               {isRunning && logs.length > 0 && (
                 <div className="mt-1 flex gap-4 px-2 py-0.5">
-                  <span className="w-20 flex-shrink-0 select-none text-xs text-zinc-700">...</span>
-                  <span className="flex items-center gap-2 text-blue-400 animate-pulse">
+                  <span className="w-20 flex-shrink-0 select-none text-xs text-zinc-600">...</span>
+                  <span className="flex items-center gap-2 text-violet-400 animate-pulse">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Running...
                   </span>
@@ -291,23 +291,23 @@ export default function DeploymentDetail() {
         </Card>
 
         {isSuccess && (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-500">
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-300">
             <CheckCircle2 className="h-5 w-5" />
             Deployment completed successfully
             {deployment.durationSeconds && (
-              <span className="ml-auto font-normal text-muted-foreground">
+              <span className="ml-auto font-normal text-zinc-400">
                 in {formatDuration(deployment.durationSeconds)}
               </span>
             )}
           </div>
         )}
         {isFailed && (
-          <div className="flex flex-col gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-500">
+          <div className="flex flex-col gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
             <div className="flex items-center gap-3">
               <XCircle className="h-5 w-5 flex-shrink-0" />
               <span>Deployment failed</span>
               {deployment.durationSeconds && (
-                <span className="ml-auto font-normal text-muted-foreground">
+                <span className="ml-auto font-normal text-zinc-400">
                   after {formatDuration(deployment.durationSeconds)}
                 </span>
               )}

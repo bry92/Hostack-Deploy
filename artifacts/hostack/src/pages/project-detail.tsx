@@ -117,7 +117,7 @@ export default function ProjectDetail() {
             description="Loading deployment controls, runtime signals, and project settings."
           />
           <AppPageSection>
-            <div className="h-40 animate-pulse rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900/70" />
+            <div className="h-40 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
           </AppPageSection>
         </AppPage>
       </ProtectedLayout>
@@ -143,12 +143,12 @@ export default function ProjectDetail() {
     <ProtectedLayout>
       <AppPage>
         {showAutoDeployBanner && (
-          <div className="flex items-center gap-3 rounded-lg border border-zinc-300/70 bg-zinc-200/50 p-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300">
-            <Zap className="w-4 h-4 flex-shrink-0 text-zinc-500 dark:text-zinc-400" />
+          <div className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 text-sm text-zinc-300">
+            <Zap className="h-4 w-4 flex-shrink-0 text-violet-400" />
             <span>
               <strong>Auto-deploy is enabled.</strong> On a real git push to this branch, this deployment would fire automatically — no manual trigger needed.
             </span>
-            <button onClick={() => setShowAutoDeployBanner(false)} className="ml-auto text-zinc-500 transition-colors hover:text-zinc-800 dark:hover:text-zinc-100">
+            <button onClick={() => setShowAutoDeployBanner(false)} className="ml-auto text-zinc-500 transition-colors hover:text-white">
               <XCircle className="w-4 h-4" />
             </button>
           </div>
@@ -158,7 +158,7 @@ export default function ProjectDetail() {
           icon={<FolderOpen className="h-5 w-5" />}
           title={project.name}
           description={
-            <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-col gap-2 text-sm text-zinc-400">
               <span>Build configuration, deployment history, runtime signals, and project controls.</span>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="flex items-center gap-1">
@@ -189,7 +189,7 @@ export default function ProjectDetail() {
               <Button
                 onClick={handleManualDeploy}
                 disabled={isTriggering}
-                className="px-5 font-semibold shadow-lg shadow-primary/20"
+                className="px-5 font-semibold"
               >
                 <Rocket className="mr-2 h-4 w-4" />
                 {isTriggering ? "Triggering..." : "Deploy to Production"}
@@ -200,15 +200,15 @@ export default function ProjectDetail() {
 
         <AppPageSection className="gap-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full flex-col gap-4">
-          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900/70">
-            <TabsTrigger value="overview" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Overview</TabsTrigger>
-            <TabsTrigger value="deployments" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Deployments</TabsTrigger>
-            <TabsTrigger value="logs" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Logs</TabsTrigger>
-            <TabsTrigger value="metrics" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Metrics</TabsTrigger>
-            <TabsTrigger value="copilot" className="gap-1.5 rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950"><Sparkles className="w-3.5 h-3.5" />Copilot</TabsTrigger>
-            <TabsTrigger value="envvars" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Env Vars</TabsTrigger>
-            <TabsTrigger value="integrations" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Integrations</TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-lg px-3 py-2 text-sm data-[state=active]:bg-zinc-950 data-[state=active]:text-white dark:data-[state=active]:bg-zinc-100 dark:data-[state=active]:text-zinc-950">Settings</TabsTrigger>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="deployments">Deployments</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="metrics">Metrics</TabsTrigger>
+            <TabsTrigger value="copilot" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Copilot</TabsTrigger>
+            <TabsTrigger value="envvars">Env Vars</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <div>
@@ -262,22 +262,22 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
 
   const mostRecentDeployedId = deployments.find(d => (d.status === "deployed" || d.status === "ready") && d.environment === "production")?.id;
 
-  if (isLoading) return <div className="h-40 bg-muted/20 animate-pulse rounded-xl" />;
+  if (isLoading) return <div className="h-40 rounded-xl bg-zinc-900 animate-pulse" />;
 
   return (
-    <Card className="border-border/50 bg-card/30">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Deployment History</CardTitle>
         <CardDescription>Build runs, promotion status, and rollback access for this project.</CardDescription>
       </CardHeader>
       <CardContent>
         {deployments.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/50 py-6 text-center text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-zinc-800 py-6 text-center text-zinc-400">
             No deployments yet. Trigger a deployment to get started.
           </div>
         ) : (
-          <div className="rounded-md border border-border/50 overflow-hidden">
-            <div className="grid grid-cols-12 gap-3 border-b border-border/50 bg-white/[0.02] px-3 py-3 text-xs font-medium text-muted-foreground">
+          <div className="overflow-hidden rounded-xl border border-zinc-800">
+            <div className="grid grid-cols-12 gap-3 border-b border-zinc-800 bg-zinc-950 px-3 py-3 text-xs font-medium text-zinc-400">
               <div className="col-span-2">Status</div>
               <div className="col-span-3">Commit / URL</div>
               <div className="col-span-2">Environment</div>
@@ -285,13 +285,13 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
               <div className="col-span-1">Duration</div>
               <div className="col-span-2 text-right">Actions</div>
             </div>
-            <div className="divide-y divide-border/50">
+            <div className="divide-y divide-zinc-800">
               {deployments.map(dep => {
                 const isRollback = dep.triggerType === "rollback";
                 const canRollback = (dep.status === "deployed" || dep.status === "ready") && dep.environment === "production" && dep.id !== mostRecentDeployedId;
 
                 return (
-                  <div key={dep.id} className="grid grid-cols-12 items-center gap-3 px-3 py-3 text-sm transition-colors hover:bg-white/[0.02]">
+                  <div key={dep.id} className="grid grid-cols-12 items-center gap-3 px-3 py-3 text-sm transition-colors hover:bg-zinc-900">
                     <div className="col-span-2 flex items-center gap-1.5">
                       <StatusBadge status={dep.status} />
                       {isRollback && (
@@ -304,11 +304,11 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                     <div className="col-span-3 min-w-0">
                       {dep.commitHash ? (
                         <div className="flex flex-col gap-0.5">
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                          <span className="flex items-center gap-1.5 text-xs font-mono text-zinc-400">
                             <GitCommit className="w-3 h-3 flex-shrink-0" />
                             {dep.commitHash.slice(0, 8)}
                             {dep.commitMessage && (
-                              <span className="min-w-0 flex-1 truncate text-foreground/70">{dep.commitMessage}</span>
+                              <span className="min-w-0 flex-1 truncate text-zinc-300">{dep.commitMessage}</span>
                             )}
                           </span>
                           {dep.deploymentUrl && (
@@ -321,7 +321,7 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground italic">
+                        <span className="text-xs italic text-zinc-400">
                           {dep.deploymentUrl ? (
                             <a href={dep.deploymentUrl} target="_blank" rel="noopener noreferrer"
                               className="text-emerald-400/80 hover:text-emerald-400 font-mono not-italic flex items-center gap-1"
@@ -337,8 +337,8 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                     </div>
                     <div className="col-span-2"><EnvironmentBadge environment={dep.environment} /></div>
                     <div className="col-span-2">
-                      <div className="text-xs text-foreground">{format(new Date(dep.createdAt), "MMM d, yyyy")}</div>
-                      <div className="text-xs text-muted-foreground">{format(new Date(dep.createdAt), "h:mm a")}</div>
+                      <div className="text-xs text-white">{format(new Date(dep.createdAt), "MMM d, yyyy")}</div>
+                      <div className="text-xs text-zinc-400">{format(new Date(dep.createdAt), "h:mm a")}</div>
                     </div>
                     <div className="col-span-1 text-xs text-muted-foreground">{formatDuration(dep.durationSeconds) || "—"}</div>
                     <div className="col-span-2 flex items-center justify-end gap-1">
@@ -355,7 +355,7 @@ function DeploymentsTab({ projectId }: { projectId: string }) {
                         </Button>
                       )}
                       <Link href={`/projects/${projectId}/deployments/${dep.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:bg-violet-500/10 hover:text-violet-400">
                           <ExternalLink className="w-4 h-4" />
                         </Button>
                       </Link>
@@ -513,7 +513,7 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
   };
 
   return (
-    <Card className="border-border/50 bg-card/30">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
@@ -534,15 +534,15 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                   <Sparkles className="w-8 h-8 text-violet-400/60" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Ask anything about your project</p>
-                  <p className="text-xs text-muted-foreground/60">I have access to your deployments, logs, metrics, and configuration.</p>
+                  <p className="mb-1 text-sm text-zinc-400">Ask anything about your project</p>
+                  <p className="text-xs text-zinc-500">I have access to your deployments, logs, metrics, and configuration.</p>
                 </div>
                 <div className="flex w-full flex-wrap justify-center gap-2">
                   {suggestedPrompts.map((prompt) => (
                     <button
                       key={prompt}
                       onClick={() => sendMessage(prompt)}
-                      className="px-3 py-1.5 text-xs rounded-full border border-border/50 bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] hover:border-violet-500/30 transition-all"
+                      className="rounded-full border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-400 transition-all hover:border-violet-500/30 hover:bg-zinc-800 hover:text-white"
                     >
                       {prompt}
                     </button>
@@ -562,8 +562,8 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                   <div
                     className={`w-full rounded-xl px-4 py-3 text-sm leading-relaxed sm:w-auto sm:basis-[80%] ${
                       msg.role === "user"
-                        ? "bg-primary/10 border border-primary/20 text-foreground"
-                        : "bg-white/[0.03] border border-border/50 text-foreground/90"
+                        ? "border border-violet-500/20 bg-violet-500/10 text-white"
+                        : "border border-zinc-800 bg-zinc-900 text-zinc-100"
                     }`}
                   >
                     {msg.role === "assistant" ? (
@@ -574,7 +574,7 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                       msg.content
                     )}
                     {msg.role === "assistant" && !msg.content && isStreaming && i === messages.length - 1 && (
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-zinc-400">
                         <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
                         <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse [animation-delay:0.2s]" />
                         <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse [animation-delay:0.4s]" />
@@ -583,8 +583,8 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                   </div>
                   {msg.role === "user" && (
                     <div className="flex-shrink-0 mt-1">
-                      <div className="w-7 h-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <User className="w-3.5 h-3.5 text-primary" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md border border-violet-500/20 bg-violet-500/10">
+                        <User className="w-3.5 h-3.5 text-violet-400" />
                       </div>
                     </div>
                   )}
@@ -594,14 +594,14 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-border/50 p-4">
+          <div className="border-t border-zinc-800 p-4">
             {messages.length > 0 && !isStreaming && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {suggestedPrompts.filter(p => !messages.some(m => m.content === p)).slice(0, 3).map((prompt) => (
                   <button
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
-                    className="px-2.5 py-1 text-[11px] rounded-full border border-border/50 bg-white/[0.02] text-muted-foreground hover:text-foreground hover:bg-white/[0.05] transition-all"
+                    className="rounded-full border border-zinc-800 bg-zinc-950 px-2.5 py-1 text-[11px] text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
                   >
                     {prompt}
                   </button>
@@ -615,13 +615,13 @@ function CopilotTab({ projectId, messages, setMessages }: { projectId: string; m
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isStreaming}
-                className="flex-1 bg-white/[0.03] border-border/50 focus-visible:ring-violet-500/30"
+                className="flex-1"
               />
               <Button
                 type="submit"
                 disabled={!input.trim() || isStreaming}
                 size="icon"
-                className="bg-violet-600 hover:bg-violet-500 text-white flex-shrink-0"
+                className="flex-shrink-0"
               >
                 {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -645,7 +645,7 @@ function CopilotMarkdown({ content }: { content: string }) {
         const codeMatch = trimmed.match(/^```(\w+)?\n([\s\S]*?)```$/);
         if (codeMatch) {
           return (
-            <pre key={bi} className="bg-black/30 border border-border/50 rounded-lg p-3 overflow-x-auto text-xs font-mono">
+            <pre key={bi} className="overflow-x-auto rounded-lg border border-zinc-800 bg-black p-3 font-mono text-xs text-green-400">
               <code>{codeMatch[2]}</code>
             </pre>
           );
@@ -734,7 +734,7 @@ function EnvVarsTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/50">
+      <Card>
         <CardHeader>
           <CardTitle>Add Environment Variable</CardTitle>
           <CardDescription>Securely store secrets and configuration for your application.</CardDescription>
@@ -767,30 +767,30 @@ function EnvVarsTab({ projectId }: { projectId: string }) {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 bg-card/30">
+      <Card>
         <CardHeader>
           <CardTitle>Configured Variables</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? <div className="h-20 bg-muted/20 animate-pulse rounded" /> :
+          {isLoading ? <div className="h-20 rounded bg-zinc-900 animate-pulse" /> :
             envVars.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+              <div className="rounded-lg border border-dashed border-zinc-800 py-6 text-center text-zinc-400">
                 No environment variables defined.
               </div>
             ) : (
-              <div className="rounded-md border border-border/50 overflow-hidden divide-y divide-border/50">
+              <div className="overflow-hidden rounded-xl border border-zinc-800 divide-y divide-zinc-800">
                 {envVars.map(v => (
-                  <div key={v.id} className="flex items-center justify-between p-4 bg-white/[0.01]">
+                  <div key={v.id} className="flex items-center justify-between bg-zinc-950 p-4">
                     <div className="flex-1 grid grid-cols-3 gap-4 items-center">
                       <div className="font-mono text-sm font-semibold">{v.key}</div>
-                      <div className="font-mono text-sm text-muted-foreground flex items-center gap-2">
+                      <div className="flex items-center gap-2 font-mono text-sm text-zinc-400">
                         {revealed[v.id] ? v.value : "••••••••••••••••"}
-                        <button onClick={() => toggleReveal(v.id)} className="text-muted-foreground hover:text-foreground">
+                        <button onClick={() => toggleReveal(v.id)} className="text-zinc-400 transition-colors hover:text-white">
                           {revealed[v.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                       <div>
-                        <span className="text-xs px-2 py-1 bg-white/5 rounded text-muted-foreground capitalize">{v.environment}</span>
+                        <span className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs capitalize text-zinc-400">{v.environment}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => deleteEnvVar({ projectId, envVarId: v.id })} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
@@ -816,7 +816,7 @@ function CopyButton({ value }: { value: string }) {
   };
 
   return (
-    <Button variant="ghost" size="icon" onClick={copy} className="h-8 w-8 text-muted-foreground hover:text-foreground flex-shrink-0">
+    <Button variant="ghost" size="icon" onClick={copy} className="h-8 w-8 flex-shrink-0 text-zinc-400 hover:text-white">
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
     </Button>
   );
@@ -860,15 +860,15 @@ function GitHubSection({ projectId }: { projectId: string }) {
   };
 
   if (isLoadingConn) {
-    return <div className="h-24 bg-muted/10 animate-pulse rounded-lg" />;
+    return <div className="h-24 rounded-lg bg-zinc-900 animate-pulse" />;
   }
 
   return (
     <div className="space-y-4">
       {/* Connection status */}
-      <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4">
         <div className="flex items-center gap-3">
-          <Github className="w-5 h-5 text-muted-foreground" />
+          <Github className="w-5 h-5 text-zinc-400" />
           <div>
             <div className="font-medium text-sm flex items-center gap-2">
               GitHub Integration
@@ -879,7 +879,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
               )}
             </div>
             {connection?.connected && connection.repoUrl && (
-              <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+              <p className="mt-0.5 text-xs font-mono text-zinc-400">
                 {connection.repoUrl}
               </p>
             )}
@@ -890,7 +890,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
             <Button
               variant="outline"
               size="sm"
-              className="border-border/50 hover:bg-white/5"
+              className="hover:bg-zinc-800"
             >
               Manage in Integrations
             </Button>
@@ -910,8 +910,8 @@ function GitHubSection({ projectId }: { projectId: string }) {
 
       {/* OAuth guidance (only when not connected) */}
       {!connection?.connected && (
-        <div className="space-y-4 p-4 bg-card/30 rounded-lg border border-border/50">
-          <p className="text-sm text-muted-foreground">
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+          <p className="text-sm text-zinc-400">
             GitHub is connected at the account level now. Start the OAuth flow to authorize repository access, then return here to configure webhooks for this project.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -928,29 +928,29 @@ function GitHubSection({ projectId }: { projectId: string }) {
 
       {/* Webhook info (only when connected) */}
       {connection?.connected && (
-        <div className="p-4 bg-card/30 rounded-lg border border-border/50 space-y-4">
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <h4 className="font-medium text-sm flex items-center gap-2">
             Webhook Configuration
             <Badge variant="outline" className="text-xs text-zinc-400">Auto-deploy on push</Badge>
           </h4>
-           <p className="text-xs text-muted-foreground">
+           <p className="text-xs text-zinc-400">
              Add this webhook URL to your GitHub repository settings. The secret is only revealed after regeneration and is not guaranteed to be readable later.
            </p>
 
           {isLoadingWebhook ? (
-            <div className="h-16 bg-muted/10 animate-pulse rounded" />
+            <div className="h-16 rounded bg-zinc-900 animate-pulse" />
           ) : webhookInfo ? (
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Webhook URL</Label>
-                <div className="flex items-center gap-2 bg-zinc-900 rounded-lg border border-border/50 px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
                   <code className="text-xs text-emerald-400 flex-1 break-all font-mono">{webhookInfo.webhookUrl}</code>
                   <CopyButton value={webhookInfo.webhookUrl} />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Webhook Secret</Label>
-                <div className="flex items-center gap-2 bg-zinc-900 rounded-lg border border-border/50 px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
                   <div className="flex-1 min-w-0">
                     {currentWebhookSecret ? (
                       <code className="text-xs text-amber-400 font-mono break-all">
@@ -975,7 +975,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
                     <>
                       <button
                         onClick={() => setShowSecret(v => !v)}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-zinc-400 transition-colors hover:text-white"
                       >
                         {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -994,7 +994,7 @@ function GitHubSection({ projectId }: { projectId: string }) {
                 <RefreshCw className={`w-3.5 h-3.5 ${regenerateMutation.isPending ? "animate-spin" : ""}`} />
                 {regenerateMutation.isPending ? "Regenerating..." : "Rotate and Reveal Secret"}
               </Button>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-zinc-400">
                 Regenerating rotates the secret and reveals the new value once in this session.
               </p>
             </div>
@@ -1090,16 +1090,16 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
     }
   };
 
-  if (isLoading) return <div className="h-20 bg-muted/10 animate-pulse rounded-lg" />;
+  if (isLoading) return <div className="h-20 rounded-lg bg-zinc-900 animate-pulse" />;
 
   return (
     <div className="space-y-4">
       {rules.length > 0 && (
-        <div className="rounded-lg border border-border/50 divide-y divide-border/50 overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-zinc-800 divide-y divide-zinc-800">
           {rules.map((rule) => (
-            <div key={rule.id} className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/50 transition-colors">
+            <div key={rule.id} className="flex items-center justify-between bg-zinc-950 p-4 transition-colors hover:bg-zinc-800">
               <div className="flex items-center gap-3 min-w-0">
-                <GitBranch className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <GitBranch className="w-4 h-4 flex-shrink-0 text-zinc-400" />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-medium">{rule.branchPattern}</span>
@@ -1111,7 +1111,7 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
                     )}
                   </div>
                   {(rule.buildCommandOverride || rule.installCommandOverride) && (
-                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                    <div className="mt-1 flex gap-3 text-xs text-zinc-400">
                       {rule.installCommandOverride && (
                         <span className="font-mono">install: {rule.installCommandOverride}</span>
                       )}
@@ -1126,7 +1126,7 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 text-zinc-400 hover:text-white"
                   onClick={() => startEdit(rule)}
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -1147,7 +1147,7 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
       )}
 
       {showAdd ? (
-        <form onSubmit={handleSubmit} className="p-4 bg-card/30 rounded-lg border border-border/50 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5"><GitBranch className="w-3.5 h-3.5" /> Branch Pattern</Label>
@@ -1158,7 +1158,7 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
                 className="font-mono text-sm"
                 required
               />
-              <p className="text-xs text-muted-foreground">Use * as a wildcard. e.g. feature/* matches all feature branches.</p>
+              <p className="text-xs text-zinc-400">Use * as a wildcard. e.g. feature/* matches all feature branches.</p>
             </div>
             <div className="space-y-2">
               <Label>Target Environment</Label>
@@ -1191,10 +1191,10 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
               />
             </div>
           </div>
-          <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-border/50">
+          <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
             <div>
               <p className="font-medium text-sm">Auto-deploy</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Automatically deploy when matching branches are pushed.</p>
+              <p className="mt-0.5 text-xs text-zinc-400">Automatically deploy when matching branches are pushed.</p>
             </div>
             <Switch checked={autoDeploy} onCheckedChange={setAutoDeploy} />
           </div>
@@ -1215,7 +1215,7 @@ function BuildRulesSection({ projectId }: { projectId: string }) {
       )}
 
       {rules.length === 0 && !showAdd && (
-        <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+        <div className="rounded-lg border border-dashed border-zinc-800 py-6 text-center text-zinc-400">
           <div className="mb-2 flex justify-center opacity-50">
             <GitBranch className="h-5 w-5" />
           </div>
@@ -1295,7 +1295,7 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
     }
   };
 
-  if (isLoading) return <div className="h-20 bg-muted/10 animate-pulse rounded-lg" />;
+  if (isLoading) return <div className="h-20 rounded-lg bg-zinc-900 animate-pulse" />;
 
   return (
     <div className="space-y-4">
@@ -1322,13 +1322,13 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
             const secretVisible = showSecrets[wh.id];
 
             return (
-              <div key={wh.id} className="p-4 bg-card/30 rounded-lg border border-border/50 space-y-3">
+              <div key={wh.id} className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Webhook className="w-4 h-4 text-muted-foreground" />
+                    <Webhook className="w-4 h-4 text-zinc-400" />
                     <span className="font-medium text-sm">{wh.label}</span>
                     {wh.lastTriggeredAt && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-zinc-400">
                         Last triggered {formatDistanceToNow(new Date(wh.lastTriggeredAt), { addSuffix: true })}
                       </span>
                     )}
@@ -1365,20 +1365,20 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
                 <div className="space-y-2">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Webhook URL</Label>
-                    <div className="flex items-center gap-2 bg-zinc-950 rounded-lg border border-border/50 px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
                       <code className="text-xs text-emerald-400 flex-1 break-all font-mono">{webhookUrl}</code>
                       <CopyButton value={webhookUrl} />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Secret</Label>
-                    <div className="flex items-center gap-2 bg-zinc-950 rounded-lg border border-border/50 px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
                       <code className="text-xs text-amber-400 flex-1 font-mono">
                         {secretVisible ? wh.secret : `${wh.secret.slice(0, 8)}${"•".repeat(24)}`}
                       </code>
                       <button
                         onClick={() => setShowSecrets(prev => ({ ...prev, [wh.id]: !prev[wh.id] }))}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-zinc-400 transition-colors hover:text-white"
                       >
                         {secretVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -1389,8 +1389,8 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
 
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">cURL Example</Label>
-                  <div className="flex items-center gap-2 bg-zinc-950 rounded-lg border border-border/50 px-3 py-2">
-                    <code className="text-xs text-cyan-400 flex-1 break-all font-mono">{curlExample}</code>
+                  <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2">
+                    <code className="flex-1 break-all font-mono text-xs text-blue-400">{curlExample}</code>
                     <CopyButton value={curlExample} />
                   </div>
                 </div>
@@ -1399,7 +1399,7 @@ function DeployWebhooksSection({ projectId }: { projectId: string }) {
           })}
         </div>
       ) : (
-        <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+        <div className="rounded-lg border border-dashed border-zinc-800 py-6 text-center text-zinc-400">
           <div className="mb-2 flex justify-center opacity-50">
             <Webhook className="h-5 w-5" />
           </div>
@@ -1490,10 +1490,10 @@ function BuildSettingsSection({ project }: { project: Project }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4">
         <div>
           <p className="font-medium text-sm">Auto-deploy on push</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Automatically deploy when a push is made to the production branch.</p>
+          <p className="mt-0.5 text-xs text-zinc-400">Automatically deploy when a push is made to the production branch.</p>
         </div>
         <Switch checked={autoDeploy} onCheckedChange={setAutoDeploy} />
       </div>
@@ -1541,15 +1541,15 @@ function SshKeySection({ projectId }: { projectId: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (isLoading) return <div className="h-20 bg-muted/10 animate-pulse rounded-lg" />;
+  if (isLoading) return <div className="h-20 rounded-lg bg-zinc-900 animate-pulse" />;
 
   return (
     <div className="space-y-4">
       {/* Status row */}
-      <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 p-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-muted-foreground" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
+            <Terminal className="w-4 h-4 text-zinc-400" />
           </div>
           <div>
             <div className="font-medium text-sm flex items-center gap-2">
@@ -1560,7 +1560,7 @@ function SshKeySection({ projectId }: { projectId: string }) {
                 <Badge variant="outline" className="text-zinc-500 text-xs">Not Connected</Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-xs text-zinc-400">
               {sshKey
                 ? `ED25519 key — created ${formatDistanceToNow(new Date(sshKey.createdAt), { addSuffix: true })}`
                 : "No SSH key generated yet"}
@@ -1614,13 +1614,13 @@ function SshKeySection({ projectId }: { projectId: string }) {
               <span className="text-xs text-muted-foreground">Safe to share — add this to GitHub</span>
             </div>
             <div className="relative">
-              <div className="bg-zinc-950 border border-border/50 rounded-lg p-3 pr-10 font-mono text-xs text-emerald-400 break-all leading-relaxed">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 pr-10 font-mono text-xs leading-relaxed text-emerald-400 break-all">
                 {sshKey.publicKey}
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                className="absolute top-2 right-2 h-6 w-6 text-zinc-400 hover:text-white"
                 onClick={handleCopy}
                 title="Copy public key"
               >
@@ -1630,31 +1630,31 @@ function SshKeySection({ projectId }: { projectId: string }) {
           </div>
 
           {/* GitHub instructions */}
-          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-blue-400">
+          <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-violet-400">
               <Github className="w-4 h-4" />
               How to add this key to GitHub
             </div>
-            <ol className="space-y-2 text-sm text-muted-foreground list-none">
+            <ol className="space-y-2 text-sm text-zinc-300 list-none">
               {[
                 "Copy the public key above",
                 "Go to your GitHub repository",
                 'Navigate to Settings → Deploy Keys → Add Deploy Key',
-                "Paste the public key and give it a name (e.g. \"Hostack Deploy\")",
+                "Paste the public key and give it a name (e.g. \"Aetheria Deploy\")",
                 'Enable "Allow write access" if your deployments need to push',
                 "Click Add Key",
               ].map((step, i) => (
                 <li key={i} className="flex gap-3 items-start">
-                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
+                  <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-violet-500/20 text-xs font-bold text-violet-400">
                     {i + 1}
                   </span>
                   <span>{step}</span>
                 </li>
               ))}
             </ol>
-            <div className="pt-2 border-t border-blue-500/20">
-              <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">Security note:</span> The private key is stored securely and never exposed through the API. Only the deployment worker accesses it during cloning.
+            <div className="border-t border-violet-500/20 pt-2">
+              <p className="text-xs text-zinc-400">
+                <span className="font-semibold text-white">Security note:</span> The private key is stored securely and never exposed through the API. Only the deployment worker accesses it during cloning.
               </p>
             </div>
           </div>
@@ -1741,7 +1741,7 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
     failed: { label: "Failed", className: "bg-red-500/10 text-red-400 border-red-500/20" },
   };
 
-  if (isLoading) return <div className="h-20 bg-muted/10 animate-pulse rounded-lg" />;
+  if (isLoading) return <div className="h-20 rounded-lg bg-zinc-900 animate-pulse" />;
 
   return (
     <div className="space-y-4">
@@ -1762,24 +1762,24 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
       </form>
 
       {domains.length > 0 && (
-        <div className="rounded-lg border border-border/50 divide-y divide-border/50 overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-zinc-800 divide-y divide-zinc-800">
           {domains.map((d) => {
             const sc = statusConfig[d.status] || statusConfig.pending;
             return (
-              <div key={d.id} className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/50 transition-colors">
+              <div key={d.id} className="flex items-center justify-between bg-zinc-950 p-4 transition-colors hover:bg-zinc-800">
                 <div className="flex items-center gap-3 min-w-0">
-                  <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <Globe className="w-4 h-4 flex-shrink-0 text-zinc-400" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm font-medium truncate">{d.domain}</span>
                       <Badge variant="outline" className={`text-xs ${sc.className}`}>{sc.label}</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-xs text-zinc-400">
                       Added {formatDistanceToNow(new Date(d.createdAt), { addSuffix: true })}
                       {d.verifiedAt && ` | Verified ${formatDistanceToNow(new Date(d.verifiedAt), { addSuffix: true })}`}
                     </p>
                     {d.status !== "active" && (
-                      <p className="text-[11px] text-muted-foreground mt-1 font-mono truncate">
+                      <p className="mt-1 truncate font-mono text-[11px] text-zinc-400">
                         TXT _hostack-challenge.{d.domain} = {d.verificationToken}
                       </p>
                     )}
@@ -1814,48 +1814,48 @@ function CustomDomainsSection({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-blue-400">
+      <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/10 p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-violet-400">
           <Globe className="w-4 h-4" />
           DNS Configuration
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-zinc-400">
           Add both records for each domain before clicking Verify:
         </p>
-        <div className="bg-zinc-950 border border-border/50 rounded-lg p-3 font-mono text-xs space-y-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs">
           <div className="space-y-1">
-            <div className="text-muted-foreground">Traffic Record</div>
+            <div className="text-zinc-400">Traffic Record</div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Type</span>
+              <span className="w-12 text-zinc-400">Type</span>
               <span className="text-emerald-400">CNAME</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Name</span>
+              <span className="w-12 text-zinc-400">Name</span>
               <span className="text-emerald-400">your-subdomain</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Value</span>
+              <span className="w-12 text-zinc-400">Value</span>
               <span className="text-emerald-400">cname.hostack.app</span>
             </div>
           </div>
-          <div className="space-y-1 border-t border-white/10 pt-2">
-            <div className="text-muted-foreground">Ownership Verification</div>
+          <div className="space-y-1 border-t border-zinc-800 pt-2">
+            <div className="text-zinc-400">Ownership Verification</div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Type</span>
+              <span className="w-12 text-zinc-400">Type</span>
               <span className="text-emerald-400">TXT</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Name</span>
+              <span className="w-12 text-zinc-400">Name</span>
               <span className="text-emerald-400">_hostack-challenge.your-domain</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-muted-foreground w-12">Value</span>
+              <span className="w-12 text-zinc-400">Value</span>
               <span className="text-emerald-400">verification token from row above</span>
             </div>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          For root domains (e.g. <code className="bg-white/5 px-1 rounded">example.com</code>), use an ALIAS or ANAME record pointing to <code className="bg-white/5 px-1 rounded">cname.hostack.app</code>. DNS changes can take up to 48 hours to propagate.
+        <p className="text-xs text-zinc-400">
+          For root domains (e.g. <code className="rounded bg-zinc-900 px-1">example.com</code>), use an ALIAS or ANAME record pointing to <code className="rounded bg-zinc-900 px-1">cname.hostack.app</code>. DNS changes can take up to 48 hours to propagate.
         </p>
       </div>
     </div>
@@ -1881,7 +1881,7 @@ function SettingsTab({ project }: { project: Project }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       {/* General */}
-      <Card className="border-border/50 bg-card/30 md:col-span-2">
+      <Card className="md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle>General Settings</CardTitle>
         </CardHeader>
@@ -1901,7 +1901,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Build Settings */}
-      <Card className="border-border/50 bg-card/30 md:col-span-2">
+      <Card className="md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle>Build & Deploy Settings</CardTitle>
           <CardDescription>Configure how your project is built and deployed.</CardDescription>
@@ -1912,7 +1912,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* GitHub Integration */}
-      <Card className="border-border/50 bg-card/30">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle>GitHub Integration</CardTitle>
           <CardDescription>Connect GitHub to enable private repo access and auto-deploy on push.</CardDescription>
@@ -1923,7 +1923,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Build Rules */}
-      <Card className="border-border/50 bg-card/30 md:col-span-2">
+      <Card className="md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle>Build Rules</CardTitle>
           <CardDescription>Configure branch-specific build rules for automated deployments. Match branch patterns to deploy to different environments with custom build settings.</CardDescription>
@@ -1934,7 +1934,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Deploy Webhooks */}
-      <Card className="border-border/50 bg-card/30 md:col-span-2">
+      <Card className="md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle>Deploy Webhooks</CardTitle>
           <CardDescription>Generate webhook URLs that trigger deployments when called. Use these in your CI/CD pipeline or external tools.</CardDescription>
@@ -1945,7 +1945,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* SSH Key */}
-      <Card className="border-border/50 bg-card/30">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle>SSH Deploy Key</CardTitle>
           <CardDescription>Generate an ED25519 SSH key to authenticate with private GitHub repositories without a personal access token.</CardDescription>
@@ -1956,10 +1956,10 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Custom Domains */}
-      <Card className="border-border/50 bg-card/30">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle>Custom Domains</CardTitle>
-          <CardDescription>Attach your own domain names to this project. Configure DNS records to point to Hostack.</CardDescription>
+          <CardDescription>Attach your own domain names to this project. Configure DNS records to point to Aetheria.</CardDescription>
         </CardHeader>
         <CardContent>
           <CustomDomainsSection projectId={project.id} />
@@ -1967,7 +1967,7 @@ function SettingsTab({ project }: { project: Project }) {
       </Card>
 
       {/* Notifications */}
-      <Card className="border-border/50 bg-card/30 md:col-span-2">
+      <Card className="md:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2"><Bell className="w-5 h-5" /> Notifications</CardTitle>
           <CardDescription>Get alerted when deployments start, succeed, or fail via Slack, Discord, or a custom webhook.</CardDescription>
@@ -2038,10 +2038,10 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div className="flex flex-col gap-4 md:col-span-2">
-        <Card className="border-border/50 bg-card/30">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="w-4 h-4 text-muted-foreground" />
+              <Activity className="w-4 h-4 text-zinc-400" />
               Health Status
             </CardTitle>
           </CardHeader>
@@ -2056,20 +2056,20 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
               )}
             </div>
             <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-              <div className="p-3 bg-white/5 rounded-lg border border-border/50">
-                <p className="text-xs text-muted-foreground mb-1">Error Rate</p>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                <p className="mb-1 text-xs text-zinc-400">Error Rate</p>
                 <p className={`font-semibold ${metrics?.errorRate != null && metrics.errorRate > 5 ? "text-red-400" : "text-emerald-400"}`}>
                   {metrics?.hasData ? `${metrics.errorRate?.toFixed(2) ?? "—"}%` : "No data"}
                 </p>
               </div>
-              <div className="p-3 bg-white/5 rounded-lg border border-border/50">
-                <p className="text-xs text-muted-foreground mb-1">P95 Latency</p>
-                <p className={`font-semibold ${metrics?.p95LatencyMs != null && metrics.p95LatencyMs > 500 ? "text-orange-400" : "text-cyan-400"}`}>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                <p className="mb-1 text-xs text-zinc-400">P95 Latency</p>
+                <p className={`font-semibold ${metrics?.p95LatencyMs != null && metrics.p95LatencyMs > 500 ? "text-orange-400" : "text-blue-400"}`}>
                   {metrics?.hasData ? `${metrics.p95LatencyMs?.toFixed(0) ?? "—"}ms` : "No data"}
                 </p>
               </div>
-              <div className="p-3 bg-white/5 rounded-lg border border-border/50">
-                <p className="text-xs text-muted-foreground mb-1">Uptime</p>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                <p className="mb-1 text-xs text-zinc-400">Uptime</p>
                 <p className="font-semibold text-emerald-400">
                   {metrics?.hasData ? `${metrics.uptimePct?.toFixed(2) ?? "—"}%` : "No data"}
                 </p>
@@ -2078,10 +2078,10 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/30">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Rocket className="w-4 h-4 text-muted-foreground" />
+              <Rocket className="w-4 h-4 text-zinc-400" />
               Latest Deployment
             </CardTitle>
           </CardHeader>
@@ -2091,10 +2091,10 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
                 <div className="flex flex-col gap-2">
                   <StatusBadge status={latestDep.status} />
                   {latestDep.commitHash && (
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                    <span className="flex items-center gap-1.5 font-mono text-xs text-zinc-400">
                       <GitCommit className="w-3 h-3" />
                       {latestDep.commitHash.slice(0, 8)}
-                      {latestDep.commitMessage && <span className="text-foreground/70 ml-1">{latestDep.commitMessage}</span>}
+                      {latestDep.commitMessage && <span className="ml-1 text-zinc-300">{latestDep.commitMessage}</span>}
                     </span>
                   )}
                   {latestDep.deploymentUrl && (
@@ -2103,7 +2103,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
                       <Globe className="w-3 h-3" /> {latestDep.deploymentUrl.replace("https://", "")}
                     </a>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-400">
                     {latestDep.createdAt ? formatDistanceToNow(new Date(latestDep.createdAt), { addSuffix: true }) : "—"}
                   </p>
                 </div>
@@ -2114,23 +2114,23 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
                 </Link>
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed border-border/50 py-5 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-zinc-800 py-5 text-center text-sm text-zinc-400">
                 No deployments yet
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/30">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-muted-foreground" />
+              <AlertCircle className="w-4 h-4 text-zinc-400" />
               Recent Errors
             </CardTitle>
           </CardHeader>
           <CardContent>
             {recentErrors.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/50 py-5 text-center text-sm text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-zinc-800 py-5 text-center text-sm text-zinc-400">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 opacity-60" />
                 No recent errors
               </div>
@@ -2149,7 +2149,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
       </div>
 
       <div className="flex flex-col gap-4">
-        <Card className="border-border/50 bg-card/30">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Quick Stats</CardTitle>
           </CardHeader>
@@ -2178,7 +2178,7 @@ function OverviewTab({ project, projectId }: { project: Project; projectId: stri
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/30">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Quick Links</CardTitle>
           </CardHeader>
@@ -2255,7 +2255,7 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
   const logs = logsQuery.data?.logs || [];
 
   return (
-    <Card className="border-border/50 bg-card/30">
+    <Card>
       <CardHeader className="gap-4 pb-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
@@ -2293,7 +2293,7 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
         </div>
         <div className="flex flex-col gap-2 md:flex-row">
           <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="w-full border-border/50 bg-card/50 md:w-40">
+            <SelectTrigger className="w-full md:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -2306,25 +2306,25 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
             </SelectContent>
           </Select>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <Input
               placeholder="Search logs..."
               value={logSearch}
               onChange={e => setLogSearch(e.target.value)}
-              className="border-border/50 bg-card/50 pl-9"
+              className="pl-9"
             />
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="overflow-hidden rounded-xl border border-border/50 bg-zinc-950 font-mono text-xs leading-relaxed">
+        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-black font-mono text-sm leading-relaxed text-green-400">
           <div className="h-[480px] overflow-y-auto">
             {logsQuery.isLoading ? (
-              <div className="flex h-full items-center justify-center gap-2 text-muted-foreground">
+              <div className="flex h-full items-center justify-center gap-2 text-zinc-500">
                 <RefreshCw className="h-4 w-4 animate-spin" /> Loading...
               </div>
             ) : logs.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-500">
                 <Terminal className="h-10 w-10 opacity-20" />
                 <p className="text-sm">No logs found. Click Simulate to generate sample entries.</p>
               </div>
@@ -2333,7 +2333,7 @@ function ProjectLogsTab({ projectId }: { projectId: string }) {
                 {logs.map(log => {
                   const cfg = LOG_LEVEL_CONFIG[log.level as keyof typeof LOG_LEVEL_CONFIG] || LOG_LEVEL_CONFIG.info;
                   return (
-                    <div key={log.id} className="flex gap-3 rounded px-2 py-1 transition-colors hover:bg-white/5">
+                    <div key={log.id} className="flex gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-900">
                       <span className="mt-0.5 w-20 flex-shrink-0 select-none text-[11px] text-zinc-600">
                         {format(new Date(log.createdAt), "HH:mm:ss.SSS")}
                       </span>
@@ -2380,7 +2380,7 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="border-border/50 bg-card/30">
+      <Card>
         <CardHeader className="gap-4 pb-3">
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
             <div className="space-y-1">
@@ -2431,11 +2431,11 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
         {[
           { label: "Requests / min", value: summary?.requestsPerMin, color: "text-blue-400" },
           { label: "Error Rate", value: summary?.errorRate, unit: "%", color: summary?.errorRate != null && summary.errorRate > 5 ? "text-red-400" : "text-emerald-400" },
-          { label: "P95 Latency", value: summary?.p95LatencyMs, unit: "ms", color: summary?.p95LatencyMs != null && summary.p95LatencyMs > 500 ? "text-orange-400" : "text-cyan-400" },
+          { label: "P95 Latency", value: summary?.p95LatencyMs, unit: "ms", color: summary?.p95LatencyMs != null && summary.p95LatencyMs > 500 ? "text-orange-400" : "text-blue-400" },
           { label: "Active Sessions", value: summary?.activeSessions, color: "text-violet-400" },
         ].map(({ label, value, unit, color }) => (
-          <div key={label} className="rounded-xl border border-border/50 bg-white/5 p-4">
-            <p className="mb-2 text-xs text-muted-foreground">{label}</p>
+          <div key={label} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs text-zinc-400">{label}</p>
             <p className={`text-2xl font-bold tabular-nums ${color}`}>
               {value == null || isEmpty
                 ? <span className="text-muted-foreground text-xl">—</span>
@@ -2451,8 +2451,8 @@ function ProjectMetricsTab({ projectId }: { projectId: string }) {
           { label: "Cold Starts", value: summary?.coldStarts, color: "text-amber-400" },
           { label: "Bandwidth", value: summary?.bandwidthKb, unit: " KB/s", color: "text-indigo-400" },
         ].map(({ label, value, unit, color }) => (
-          <div key={label} className="rounded-xl border border-border/50 bg-white/5 p-4">
-            <p className="mb-2 text-xs text-muted-foreground">{label}</p>
+          <div key={label} className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs text-zinc-400">{label}</p>
             <p className={`text-2xl font-bold tabular-nums ${color}`}>
               {value == null || isEmpty
                 ? <span className="text-muted-foreground text-xl">—</span>
@@ -2521,17 +2521,17 @@ function NotificationChannelCard({
   };
 
   return (
-    <div className="p-4 rounded-lg bg-white/5 border border-border/50 space-y-3">
+    <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">{channelLabel(setting.channelType)}</Badge>
           {setting.channelType === "webhook" && setting.webhookUrl && (
-            <span className="truncate font-mono text-xs text-muted-foreground">{setting.webhookUrl}</span>
+            <span className="truncate font-mono text-xs text-zinc-400">{setting.webhookUrl}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">{setting.enabled ? "Active" : "Disabled"}</span>
+            <span className="text-xs text-zinc-400">{setting.enabled ? "Active" : "Disabled"}</span>
             <Switch
               checked={setting.enabled}
               onCheckedChange={toggleEnabled}
@@ -2550,7 +2550,7 @@ function NotificationChannelCard({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-xs text-muted-foreground">Events:</span>
+        <span className="text-xs text-zinc-400">Events:</span>
         <label className="flex items-center gap-1.5 cursor-pointer">
           <Switch
             checked={hasStarted}
@@ -2663,7 +2663,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
   };
 
   if (isLoading) {
-    return <div className="h-20 bg-muted/20 animate-pulse rounded-lg" />;
+    return <div className="h-20 rounded-lg bg-zinc-900 animate-pulse" />;
   }
 
   return (
@@ -2693,7 +2693,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
       )}
 
       {settings.length === 0 && !addingChannel && (
-        <div className="text-center py-6 text-muted-foreground border border-dashed border-border/50 rounded-lg">
+        <div className="rounded-lg border border-dashed border-zinc-800 py-6 text-center text-zinc-400">
           <div className="mb-2 flex justify-center opacity-30">
             <Bell className="h-8 w-8" />
           </div>
@@ -2710,11 +2710,11 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
       )}
 
       {addingChannel && (
-        <div className="space-y-4 rounded-lg border border-border/50 bg-white/[0.02] p-4">
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="space-y-2">
             <Label>Delivery Channel</Label>
             <Select value={newChannelType} onValueChange={(v) => setNewChannelType(v as UpdateNotificationSettingsBodyChannelType)}>
-              <SelectTrigger className="bg-card/50 border-border/50">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -2734,7 +2734,7 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
                 placeholder="https://hooks.example.com/deploy"
                 value={newWebhookUrl}
                 onChange={e => setNewWebhookUrl(e.target.value)}
-                className="bg-card/50 border-border/50"
+                className=""
               />
             </div>
           )}
@@ -2742,21 +2742,21 @@ function NotificationSettingsSection({ projectId }: { projectId: string }) {
           <div className="space-y-3">
             <Label>Event Types</Label>
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border/50">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                 <div>
                   <p className="text-sm font-medium">Deploy Started</p>
                   <p className="text-xs text-muted-foreground">Notify when a deployment begins</p>
                 </div>
                 <Switch checked={newEventStarted} onCheckedChange={setNewEventStarted} />
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border/50">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                 <div>
                   <p className="text-sm font-medium">Deploy Succeeded</p>
                   <p className="text-xs text-muted-foreground">Notify when a deployment completes successfully</p>
                 </div>
                 <Switch checked={newEventSucceeded} onCheckedChange={setNewEventSucceeded} />
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border/50">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                 <div>
                   <p className="text-sm font-medium">Deploy Failed</p>
                   <p className="text-xs text-muted-foreground">Notify when a deployment fails</p>
@@ -2794,7 +2794,7 @@ function ProjectIntegrationsTab() {
   ];
 
   return (
-    <Card className="border-border/50 bg-card/30">
+    <Card>
       <CardHeader>
         <CardTitle>Integrations</CardTitle>
         <CardDescription>
@@ -2804,8 +2804,8 @@ function ProjectIntegrationsTab() {
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {INTEGRATION_PROVIDERS.map(p => (
-            <div key={p.provider} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-border/50">
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold uppercase text-muted-foreground">
+            <div key={p.provider} className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-colors hover:bg-zinc-800">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-bold uppercase text-zinc-400">
                 {p.provider.slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">

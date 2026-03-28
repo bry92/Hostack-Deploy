@@ -59,8 +59,31 @@ function getSafeReturnTo(value: unknown): string {
   return value;
 }
 
-function redirectToAuthError(res: Response, reason: string) {
-  const target = new URL(APP_URL);
+function getForwardedHeaderValue(value: string | string[] | undefined): string | undefined {
+  if (!value) return undefined;
+  const first = Array.isArray(value) ? value[0] : value;
+  return first?.split(",")[0]?.trim() || undefined;
+}
+
+function getRequestAppUrl(req: Request): string {
+  const host =
+    getForwardedHeaderValue(req.headers["x-forwarded-host"]) ??
+    req.get("host") ??
+    undefined;
+
+  if (!host) {
+    return APP_URL;
+  }
+
+  const protocol =
+    getForwardedHeaderValue(req.headers["x-forwarded-proto"]) ??
+    (req.secure ? "https" : new URL(APP_URL).protocol.replace(/:$/, ""));
+
+  return `${protocol}://${host}`.replace(/\/+$/, "");
+}
+
+function redirectToAuthError(req: Request, res: Response, reason: string) {
+  const target = new URL(getRequestAppUrl(req));
   target.searchParams.set("auth_error", reason);
   res.redirect(target.href);
 }
@@ -109,7 +132,7 @@ router.get("/auth/user", (req: Request, res: Response) => {
 
 router.get("/login", async (req: Request, res: Response) => {
   const config = await getOidcConfig();
-  const callbackUrl = `${APP_URL}/api/callback`;
+  const callbackUrl = `${getRequestAppUrl(req)}/api/callback`;
 
   const returnTo = getSafeReturnTo(req.query.returnTo);
 
@@ -145,14 +168,14 @@ router.get("/login", async (req: Request, res: Response) => {
 
 router.get("/callback", async (req: Request, res: Response) => {
   const config = await getOidcConfig();
-  const callbackUrl = `${APP_URL}/api/callback`;
+  const callbackUrl = `${getRequestAppUrl(req)}/api/callback`;
 
   const codeVerifier = req.cookies?.code_verifier;
   const nonce = req.cookies?.nonce;
   const expectedState = req.cookies?.state;
 
   if (!codeVerifier || !expectedState) {
-    redirectToAuthError(res, "missing_login_state");
+    redirectToAuthError(req, res, "missing_login_state");
     return;
   }
 
@@ -170,7 +193,7 @@ router.get("/callback", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("OIDC callback token exchange failed", error);
-    redirectToAuthError(res, "token_exchange_failed");
+    redirectToAuthError(req, res, "token_exchange_failed");
     return;
   }
 
@@ -183,7 +206,7 @@ router.get("/callback", async (req: Request, res: Response) => {
 
   const claims = tokens.claims();
   if (!claims) {
-    redirectToAuthError(res, "missing_claims");
+    redirectToAuthError(req, res, "missing_claims");
     return;
   }
 
@@ -210,13 +233,14 @@ router.get("/callback", async (req: Request, res: Response) => {
 
 router.get("/logout", async (req: Request, res: Response) => {
   const config = await getOidcConfig();
+  const appUrl = getRequestAppUrl(req);
 
   const sid = getSessionId(req);
   await clearSession(res, sid);
 
   const endSessionUrl = oidc.buildEndSessionUrl(config, {
     client_id: OIDC_CLIENT_ID!,
-    post_logout_redirect_uri: APP_URL,
+    post_logout_redirect_uri: appUrl,
   });
 
   res.redirect(endSessionUrl.href);

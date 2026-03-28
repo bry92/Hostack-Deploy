@@ -24,22 +24,22 @@ export default function Deployments() {
         />
 
         {isLoading ? (
-          <div className="h-64 bg-card/50 animate-pulse rounded-xl border border-border/50" />
+          <div className="h-64 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
         ) : deployments.length === 0 ? (
-           <div className="flex flex-col items-center justify-center py-20 px-4 border border-dashed border-border/50 rounded-2xl bg-card/10">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
+           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900 px-4 py-20">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-violet-500/20 bg-violet-500/10 text-violet-400">
               <Activity className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No deployments found</h3>
-            <p className="text-muted-foreground text-center max-w-md">
+            <h3 className="mb-2 text-xl font-semibold text-white">No deployments found</h3>
+            <p className="max-w-md text-center text-zinc-400">
               Deployments will appear here once you create a project and trigger a build.
             </p>
           </div>
         ) : (
-          <Card className="border-border/50 bg-card/30">
+          <Card className="overflow-hidden">
             <CardContent className="p-0">
-              <div className="rounded-md overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 p-4 text-sm font-medium text-muted-foreground bg-white/[0.02] border-b border-border/50">
+              <div className="overflow-hidden rounded-xl">
+                <div className="grid grid-cols-12 gap-4 border-b border-zinc-800 bg-zinc-950 p-4 text-sm font-medium text-zinc-400">
                   <div className="col-span-3">Project</div>
                   <div className="col-span-2">Status</div>
                   <div className="col-span-2">Environment</div>
@@ -47,24 +47,24 @@ export default function Deployments() {
                   <div className="col-span-1">Duration</div>
                   <div className="col-span-1 text-right">View</div>
                 </div>
-                <div className="divide-y divide-border/50">
+                <div className="divide-y divide-zinc-800">
                   {deployments.map(dep => (
-                    <div key={dep.id} className="grid grid-cols-12 gap-4 p-4 items-center text-sm hover:bg-white/[0.02] transition-colors group">
-                      <div className="col-span-3 font-medium flex items-center gap-2">
-                        <Box className="w-4 h-4 text-muted-foreground" />
-                        <Link href={`/projects/${dep.projectId}`} className="hover:text-primary transition-colors">
+                    <div key={dep.id} className="group grid grid-cols-12 items-center gap-4 p-4 text-sm transition-colors hover:bg-zinc-800">
+                      <div className="col-span-3 flex items-center gap-2 font-medium text-white">
+                        <Box className="h-4 w-4 text-zinc-400" />
+                        <Link href={`/projects/${dep.projectId}`} className="transition-colors hover:text-violet-400">
                           {dep.projectName || 'Project'}
                         </Link>
                       </div>
                       <div className="col-span-2"><StatusBadge status={dep.status} /></div>
                       <div className="col-span-2"><EnvironmentBadge environment={dep.environment} /></div>
-                      <div className="col-span-3 text-muted-foreground">
+                      <div className="col-span-3 text-zinc-400">
                         {formatDistanceToNow(new Date(dep.createdAt), { addSuffix: true })}
                       </div>
-                      <div className="col-span-1 text-muted-foreground">{formatDuration(dep.durationSeconds)}</div>
+                      <div className="col-span-1 text-zinc-400">{formatDuration(dep.durationSeconds)}</div>
                       <div className="col-span-1 text-right">
                         <Link href={`/projects/${dep.projectId}/deployments/${dep.id}`}>
-                          <button className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+                          <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-violet-400">
                             <ExternalLink className="w-4 h-4" />
                           </button>
                         </Link>

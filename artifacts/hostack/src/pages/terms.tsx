@@ -4,15 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const TERMS = [
   {
     title: "Beta service",
-    body: "Hostack is still evolving. Features, execution paths, and deployment behavior may change as the platform hardens.",
+    body: "Aetheria Build Flow is still evolving. Features, execution paths, and deployment behavior may change as the platform hardens.",
   },
   {
     title: "Your repos and environments",
-    body: "You are responsible for the code, configuration, secrets, and external services connected to your Hostack projects.",
+    body: "You are responsible for the code, configuration, secrets, and external services connected to your Aetheria projects.",
   },
   {
     title: "Operational limits",
-    body: "Hostack may restrict abusive, unsafe, or clearly destabilizing workloads in order to protect the system and other users.",
+    body: "Aetheria Build Flow may restrict abusive, unsafe, or clearly destabilizing workloads in order to protect the system and other users.",
   },
   {
     title: "Rollback and deployment history",
@@ -25,15 +25,15 @@ export default function Terms() {
     <PublicPageShell
       eyebrow="Terms"
       title="Plain-language operating terms for the current product."
-      description="These terms describe how the current Hostack service is intended to be used while the platform moves from working prototype to production-grade system."
+      description="These terms describe how the current Aetheria Build Flow service is intended to be used while the platform moves from working prototype to production-grade system."
     >
       <div className="grid gap-6">
         {TERMS.map((term) => (
-          <Card key={term.title} className="border-white/10 bg-white/[0.03]">
+          <Card key={term.title}>
             <CardHeader>
               <CardTitle className="text-white">{term.title}</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-sm text-zinc-400">
               {term.body}
             </CardContent>
           </Card>

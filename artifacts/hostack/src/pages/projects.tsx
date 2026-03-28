@@ -245,7 +245,7 @@ export default function ProjectsPage() {
           title={isCreating ? "Import From GitHub" : "Projects"}
           description={
             isCreating
-              ? "Pick a repository and Hostack will create the project, queue the first deployment, and route you straight into the build stream."
+              ? "Pick a repository and Aetheria will create the project, queue the first deployment, and route you straight into the build stream."
               : "Manage application roots, repository connections, and deployment state across every project."
           }
           actions={
@@ -266,7 +266,7 @@ export default function ProjectsPage() {
         {isCreating ? (
           <AppPageSection>
             <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
               <Input
                 className="pl-10"
                 onChange={(event) => setRepoSearch(event.target.value)}
@@ -278,11 +278,11 @@ export default function ProjectsPage() {
             {reposLoading ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {[1, 2, 3, 4].map((value) => (
-                  <div key={value} className="h-36 animate-pulse rounded-xl bg-muted/30" />
+                  <div key={value} className="h-36 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
                 ))}
               </div>
             ) : githubConnected === false ? (
-              <Card className="border-dashed border-border/60 bg-card/20">
+              <Card className="border-dashed border-zinc-800 hover:bg-zinc-900">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Github className="h-5 w-5" />
@@ -300,7 +300,7 @@ export default function ProjectsPage() {
                 </CardContent>
               </Card>
             ) : filteredRepos.length === 0 ? (
-              <Card className="border-dashed border-border/60 bg-card/20">
+              <Card className="border-dashed border-zinc-800 hover:bg-zinc-900">
                 <CardHeader>
                   <CardTitle>No repositories found</CardTitle>
                   <CardDescription>
@@ -313,13 +313,10 @@ export default function ProjectsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {filteredRepos.map((repo) => (
-                  <Card
-                    key={repo.id}
-                    className="border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300"
-                  >
+                  <Card key={repo.id}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Github className="h-5 w-5 text-muted-foreground" />
+                        <Github className="h-5 w-5 text-zinc-400" />
                         <span className="truncate">{repo.fullName}</span>
                       </CardTitle>
                       <CardDescription>
@@ -327,7 +324,7 @@ export default function ProjectsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-muted-foreground">Repository import</span>
+                      <span className="text-sm text-zinc-400">Repository import</span>
                       <Button
                         disabled={repoActionLoading}
                         onClick={() => createProjectFromRepo(repo.fullName)}
@@ -342,7 +339,7 @@ export default function ProjectsPage() {
             )}
 
             {repoActionLoading ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-zinc-400">
                 Creating project and starting deployment...
               </p>
             ) : null}
@@ -350,7 +347,7 @@ export default function ProjectsPage() {
         ) : (
           <AppPageSection>
             <div className="relative max-w-xl">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
               <Input
                 className="pl-10"
                 onChange={(event) => setProjectSearch(event.target.value)}
@@ -362,13 +359,13 @@ export default function ProjectsPage() {
             {projectsLoading ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((value) => (
-                  <div key={value} className="h-40 animate-pulse rounded-xl bg-muted/30" />
+                  <div key={value} className="h-40 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
                 ))}
               </div>
             ) : filteredProjects.length === 0 ? (
-              <Card className="border-dashed border-border/60 bg-card/20">
+              <Card className="border-dashed border-zinc-800 hover:bg-zinc-900">
                 <CardHeader>
-                  <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border border-violet-500/20 bg-violet-500/10 text-violet-400">
                     <Box className="h-8 w-8" />
                   </div>
                   <CardTitle>No projects found</CardTitle>
@@ -392,28 +389,28 @@ export default function ProjectsPage() {
                 {filteredProjects.map((project) => (
                   <div key={project.id} className="flex h-full flex-col gap-3">
                     <Link href={`/projects/${project.id}`}>
-                      <Card className="group h-full cursor-pointer border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:shadow-lg">
+                      <Card className="group h-full cursor-pointer">
                         <CardHeader className="pb-4">
                           <div className="flex items-start justify-between gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-colors group-hover:border-primary/50">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 transition-colors group-hover:border-violet-500/30">
                               <FrameworkIcon framework={project.framework ?? "unknown"} className="h-5 w-5" />
                             </div>
                             <StatusBadge status={project.latestDeploymentStatus} />
                           </div>
-                          <CardTitle className="mt-4 text-xl transition-colors group-hover:text-primary">
+                          <CardTitle className="mt-4 text-xl transition-colors group-hover:text-violet-400">
                             {project.name}
                           </CardTitle>
-                          <div className="mt-1 flex items-center text-xs text-muted-foreground">
+                          <div className="mt-1 flex items-center text-xs text-zinc-400">
                             <Github className="mr-1 h-3 w-3" />
                             <span className="truncate">{project.repoUrl || "No repository"}</span>
                           </div>
                         </CardHeader>
                         <CardContent className="mt-auto pt-0">
-                          <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-4 text-xs">
-                            <span className="text-muted-foreground">
+                          <div className="mt-2 flex items-center justify-between border-t border-zinc-800 pt-4 text-xs">
+                            <span className="text-zinc-400">
                               {project.framework || "Unknown"}
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-zinc-400">
                               {formatUpdatedAt(project.updatedAt)}
                             </span>
                           </div>

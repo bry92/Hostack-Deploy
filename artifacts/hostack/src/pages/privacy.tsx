@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const SECTIONS = [
   {
     title: "Account and auth data",
-    body: "Hostack stores the minimum account information required to identify authenticated users and associate projects, deployments, and integrations with the right owner.",
+    body: "Aetheria Build Flow stores the minimum account information required to identify authenticated users and associate projects, deployments, and integrations with the right owner.",
   },
   {
     title: "Repository and integration data",
-    body: "When you connect GitHub, Hostack stores integration metadata and tokens needed to read repository information and perform deployment-related actions.",
+    body: "When you connect GitHub, Aetheria Build Flow stores integration metadata and tokens needed to read repository information and perform deployment-related actions.",
   },
   {
     title: "Deployment logs and operational records",
@@ -24,16 +24,16 @@ export default function Privacy() {
   return (
     <PublicPageShell
       eyebrow="Privacy"
-      title="What Hostack stores, and why."
-      description="Hostack is built around deployment operations, so the data model is mostly about identities, repos, builds, logs, and environment-level configuration."
+      title="What Aetheria Build Flow stores, and why."
+      description="Aetheria Build Flow is built around deployment operations, so the data model is mostly about identities, repos, builds, logs, and environment-level configuration."
     >
       <div className="grid gap-6">
         {SECTIONS.map((section) => (
-          <Card key={section.title} className="border-white/10 bg-white/[0.03]">
+          <Card key={section.title}>
             <CardHeader>
               <CardTitle className="text-white">{section.title}</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-sm text-zinc-400">
               {section.body}
             </CardContent>
           </Card>

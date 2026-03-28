@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 const PILLARS = [
   {
     title: "Transparent by default",
-    description: "Hostack shows the actual build, runtime, and deployment path instead of hiding them behind opaque platform conventions.",
+    description: "Aetheria shows the actual build, runtime, and deployment path instead of hiding them behind opaque platform conventions.",
   },
   {
     title: "GitHub-native workflows",
-    description: "Projects begin with a repo, a branch, and a deployment plan. Hostack stays close to that source of truth instead of inventing a second system.",
+    description: "Projects begin with a repo, a branch, and a deployment plan. Aetheria stays close to that source of truth instead of inventing a second system.",
   },
   {
     title: "Control plane and workers",
@@ -19,13 +19,13 @@ const PILLARS = [
 export default function About() {
   return (
     <PublicPageShell
-      eyebrow="About Hostack"
+      eyebrow="About Aetheria"
       title="A deployment platform that refuses to be a black box."
-      description="Hostack is being built to give teams Vercel-level speed with clearer control over builds, workers, logs, runtime behavior, and rollback."
+      description="Aetheria Build Flow is being built to give teams Vercel-level speed with clearer control over builds, workers, logs, runtime behavior, and rollback."
     >
       <div className="grid gap-6 md:grid-cols-3">
         {PILLARS.map((pillar) => (
-          <Card key={pillar.title} className="border-white/10 bg-white/[0.03]">
+          <Card key={pillar.title}>
             <CardHeader>
               <CardTitle className="text-white">{pillar.title}</CardTitle>
               <CardDescription>{pillar.description}</CardDescription>
@@ -35,21 +35,21 @@ export default function About() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 mt-8">
-        <Card className="border-white/10 bg-white/[0.03]">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-white">What Hostack already does</CardTitle>
+            <CardTitle className="text-white">What Aetheria already does</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <CardContent className="space-y-3 text-sm text-zinc-400">
             <p>Connect GitHub repositories, create projects, queue deployments, stream logs, and keep a deployment history tied to authenticated users.</p>
             <p>The current architecture already separates frontend, API, shared DB schema, and worker execution inside the monorepo.</p>
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/[0.03]">
+        <Card>
           <CardHeader>
             <CardTitle className="text-white">What comes next</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <CardContent className="space-y-3 text-sm text-zinc-400">
             <p>Repo analysis as a first-class module, stronger worker lease handling, immutable release activation, and instant rollback through release pointer switching.</p>
             <p>The goal is a production-grade control plane, not another hidden CI pipeline wrapped in nice marketing.</p>
           </CardContent>

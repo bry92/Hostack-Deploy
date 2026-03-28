@@ -61,55 +61,53 @@
 }
 
 :root {
-  /* Defaulting to dark mode as requested for a sleek developer tool */
   color-scheme: dark;
-  
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+
+  --button-outline: rgb(39 39 42 / 1);
+  --badge-outline: rgb(63 63 70 / 1);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.03);
+  --elevate-2: rgba(255, 255, 255, 0.06);
 
-  /* Deep sleek monochrome */
   --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
+  --foreground: 0 0% 100%;
   --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 199 89% 48%; /* Electric Cyan/Blue */
+  --input: 240 5.9% 10%;
+  --ring: 258 90% 66%;
 
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
+  --card: 240 5.9% 10%;
+  --card-foreground: 0 0% 100%;
   --card-border: 240 3.7% 15.9%;
 
   --sidebar: 240 10% 3.9%;
-  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-foreground: 0 0% 100%;
   --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-primary: 199 89% 48%;
+  --sidebar-primary: 258 90% 66%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-ring: 199 89% 48%;
+  --sidebar-accent: 240 5.9% 10%;
+  --sidebar-accent-foreground: 240 5% 64.9%;
+  --sidebar-ring: 258 90% 66%;
 
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 240 5.9% 10%;
+  --popover-foreground: 0 0% 100%;
   --popover-border: 240 3.7% 15.9%;
 
-  --primary: 199 89% 48%;
+  --primary: 258 90% 66%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary-foreground: 0 0% 100%;
 
   --muted: 240 3.7% 15.9%;
   --muted-foreground: 240 5% 64.9%;
 
   --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.2);
   --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.2);
@@ -133,7 +131,14 @@
     @apply border-border;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply min-h-screen bg-zinc-950 font-sans antialiased text-white;
+  }
+  #root {
+    @apply min-h-screen;
+  }
+  ::selection {
+    background: rgb(139 92 246 / 0.35);
+    color: white;
   }
 }
 
@@ -154,6 +159,22 @@
 }
 
 @layer utilities {
+  .app-panel {
+    @apply rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm transition hover:bg-zinc-800;
+  }
+
+  .app-panel-static {
+    @apply rounded-xl border border-zinc-800 bg-zinc-900 p-4 shadow-sm;
+  }
+
+  .app-subtle {
+    @apply rounded-lg border border-zinc-800 bg-zinc-950;
+  }
+
+  .app-terminal {
+    @apply rounded-xl border border-zinc-800 bg-black font-mono text-sm text-green-400;
+  }
+
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),

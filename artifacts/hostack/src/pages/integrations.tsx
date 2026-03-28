@@ -138,7 +138,7 @@ const PROVIDERS: readonly ProviderConfig[] = [
     badgeColor: "bg-amber-700/30 text-amber-300",
     docs: "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
     fields: [
-      { key: "bucket", label: "Bucket Name", type: "text", placeholder: "my-hostack-artifacts", required: true },
+      { key: "bucket", label: "Bucket Name", type: "text", placeholder: "my-aetheria-artifacts", required: true },
       { key: "region", label: "Region", type: "text", placeholder: "us-east-1", required: true },
       { key: "accessKeyId", label: "Access Key ID", type: "text", placeholder: "AKIAIOSFODNN7EXAMPLE", required: true },
       { key: "secretAccessKey", label: "Secret Access Key", type: "password", placeholder: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", required: true },
@@ -203,7 +203,7 @@ const GITHUB_ERROR_MESSAGES: Record<string, { description: string; title: string
   },
   github_token_exchange_failed: {
     title: "GitHub authorization completed, but token exchange failed",
-    description: "GitHub redirected back to Hostack, but the backend could not exchange the code for an access token.",
+    description: "GitHub redirected back to Aetheria, but the backend could not exchange the code for an access token.",
   },
 };
 
@@ -253,13 +253,13 @@ function ConnectModal({
   const isValid = provider.fields.filter(f => f.required).every(f => values[f.key]?.trim());
 
   return (
-    <DialogContent className="bg-card border-border/50 max-w-lg">
+    <DialogContent className="max-w-lg">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-3 text-xl">
           <span className="text-2xl">{provider.icon}</span>
           {existing ? `Update ${provider.name}` : `Connect ${provider.name}`}
         </DialogTitle>
-        <DialogDescription className="text-sm text-muted-foreground">
+        <DialogDescription className="text-sm text-zinc-400">
           {provider.description}
         </DialogDescription>
       </DialogHeader>
@@ -279,7 +279,7 @@ function ConnectModal({
               className="font-mono text-sm"
             />
             {"hint" in field && field.hint && (
-              <p className="text-xs text-muted-foreground">{field.hint}</p>
+              <p className="text-xs text-zinc-400">{field.hint}</p>
             )}
           </div>
         ))}
@@ -289,7 +289,7 @@ function ConnectModal({
             href={provider.docs}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-primary/70 hover:text-primary flex items-center gap-1 mt-1"
+            className="mt-1 flex items-center gap-1 text-xs text-violet-400 transition-colors hover:text-violet-300"
           >
             <ExternalLink className="w-3 h-3" /> View documentation
           </a>
@@ -342,7 +342,7 @@ function IntegrationCard({
 
   return (
     <>
-      <Card className={`border-border/50 bg-gradient-to-br ${provider.accentColor} hover:border-border/80 transition-all duration-200 relative overflow-hidden group`}>
+      <Card className="group relative overflow-hidden">
         {connected && (
           <div className="absolute top-3 right-3">
             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_2px_rgba(16,185,129,0.4)]" />
@@ -361,21 +361,21 @@ function IntegrationCard({
               {connected ? (
                 <div className="flex items-center gap-1.5 mt-1">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-xs text-emerald-500 font-medium">Connected</span>
+                  <span className="text-xs font-medium text-emerald-400">Connected</span>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground mt-1 block">Not connected</span>
+                <span className="mt-1 block text-xs text-zinc-400">Not connected</span>
               )}
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0 space-y-4">
-          <p className="text-xs text-muted-foreground leading-relaxed">{provider.description}</p>
+          <p className="text-xs leading-relaxed text-zinc-400">{provider.description}</p>
 
           {connected && stats.length > 0 && (
-            <div className="space-y-1 bg-white/5 rounded-lg px-3 py-2.5 border border-white/10">
+            <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5">
               {stats.map((s, i) => (
-                <p key={i} className="text-xs font-mono text-foreground/70">{s}</p>
+                <p key={i} className="text-xs font-mono text-zinc-300">{s}</p>
               ))}
             </div>
           )}
@@ -386,7 +386,7 @@ function IntegrationCard({
               variant={connected ? "outline" : "default"}
               onClick={handlePrimaryAction}
               disabled={isGitHub && !!connected}
-              className={`flex-1 text-xs ${connected ? "border-border/50 hover:bg-white/5" : ""}`}
+              className="flex-1 text-xs"
             >
               {isGitHub ? (connected ? "Connected" : "Connect GitHub") : connected ? "Manage" : "Connect"}
             </Button>
@@ -412,7 +412,7 @@ function IntegrationCard({
       )}
 
       <Dialog open={showDisconnect} onOpenChange={setShowDisconnect}>
-        <DialogContent className="bg-card border-destructive/20 max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Disconnect {provider.name}?</DialogTitle>
             <DialogDescription>
@@ -460,14 +460,14 @@ export default function Integrations() {
           eyebrow="Infrastructure"
           icon={<Link2Off className="h-5 w-5" />}
           title="Integrations"
-          description="Connect source control, DNS, storage, notifications, and analytics so Hostack can operate as a real deployment control plane."
+          description="Connect source control, DNS, storage, notifications, and analytics so Aetheria can operate as a real deployment control plane."
           actions={
             <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-zinc-400">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                 <span>{integrations.length} connected</span>
               </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-zinc-400">
                 <AlertCircle className="w-4 h-4 text-zinc-500" />
                 <span>{PROVIDERS.length - integrations.length} available</span>
               </div>
@@ -480,19 +480,19 @@ export default function Integrations() {
             <CardContent className="flex items-start gap-3 p-4">
               <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-amber-200">{githubError.title}</p>
-                <p className="text-sm text-amber-100/80">{githubError.description}</p>
+                <p className="text-sm font-semibold text-amber-300">{githubError.title}</p>
+                <p className="text-sm text-amber-200/80">{githubError.description}</p>
               </div>
             </CardContent>
           </Card>
         )}
 
         <AppPageSection className="gap-6">
-        <div className="flex items-center gap-1 overflow-x-auto pb-2 text-xs text-muted-foreground scrollbar-none">
+        <div className="flex items-center gap-1 overflow-x-auto pb-2 text-xs text-zinc-400 scrollbar-none">
           {[
             { label: "Code", color: "text-blue-400" },
             { label: "→" },
-            { label: "Deploy", color: "text-cyan-400" },
+            { label: "Deploy", color: "text-violet-400" },
             { label: "→" },
             { label: "Domain", color: "text-green-400" },
             { label: "→" },
@@ -515,7 +515,7 @@ export default function Integrations() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-44 bg-card/50 animate-pulse rounded-xl border border-border/50" />
+              <div key={i} className="h-44 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
             ))}
           </div>
         ) : (

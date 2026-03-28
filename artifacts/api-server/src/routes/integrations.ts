@@ -33,8 +33,31 @@ function clearGithubOauthCookie(res: Response) {
   res.clearCookie(GITHUB_OAUTH_COOKIE, { path: "/" });
 }
 
-function redirectToIntegrations(res: Response, error?: string) {
-  const target = new URL("/integrations", `${APP_URL}/`);
+function getForwardedHeaderValue(value: string | string[] | undefined): string | undefined {
+  if (!value) return undefined;
+  const first = Array.isArray(value) ? value[0] : value;
+  return first?.split(",")[0]?.trim() || undefined;
+}
+
+function getRequestAppUrl(req: Request): string {
+  const host =
+    getForwardedHeaderValue(req.headers["x-forwarded-host"]) ??
+    req.get("host") ??
+    undefined;
+
+  if (!host) {
+    return APP_URL;
+  }
+
+  const protocol =
+    getForwardedHeaderValue(req.headers["x-forwarded-proto"]) ??
+    (req.secure ? "https" : new URL(APP_URL).protocol.replace(/:$/, ""));
+
+  return `${protocol}://${host}`.replace(/\/+$/, "");
+}
+
+function redirectToIntegrations(req: Request, res: Response, error?: string) {
+  const target = new URL("/integrations", `${getRequestAppUrl(req)}/`);
   if (error) {
     target.searchParams.set("github_error", error);
   }
@@ -128,9 +151,10 @@ router.get("/integrations/github/connect", (req: Request, res: Response) => {
     return;
   }
 
+  const appUrl = getRequestAppUrl(req);
   const clientId = getGitHubClientId();
   if (!clientId || !getGitHubClientSecret()) {
-    redirectToIntegrations(res, "github_oauth_not_configured");
+    redirectToIntegrations(req, res, "github_oauth_not_configured");
     return;
   }
 
@@ -139,7 +163,7 @@ router.get("/integrations/github/connect", (req: Request, res: Response) => {
 
   const authorizeUrl = new URL("https://github.com/login/oauth/authorize");
   authorizeUrl.searchParams.set("client_id", clientId);
-  authorizeUrl.searchParams.set("redirect_uri", `${APP_URL}${GITHUB_CALLBACK_PATH}`);
+  authorizeUrl.searchParams.set("redirect_uri", `${appUrl}${GITHUB_CALLBACK_PATH}`);
   authorizeUrl.searchParams.set("scope", "repo read:user");
   authorizeUrl.searchParams.set("state", state);
 
@@ -148,14 +172,15 @@ router.get("/integrations/github/connect", (req: Request, res: Response) => {
 
 router.get("/integrations/github/callback", async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
-    redirectToIntegrations(res, "auth_required");
+    redirectToIntegrations(req, res, "auth_required");
     return;
   }
 
+  const appUrl = getRequestAppUrl(req);
   const clientId = getGitHubClientId();
   const clientSecret = getGitHubClientSecret();
   if (!clientId || !clientSecret) {
-    redirectToIntegrations(res, "github_oauth_not_configured");
+    redirectToIntegrations(req, res, "github_oauth_not_configured");
     return;
   }
 
@@ -165,7 +190,7 @@ router.get("/integrations/github/callback", async (req: Request, res: Response) 
   clearGithubOauthCookie(res);
 
   if (!code || !state || !expectedState || state !== expectedState) {
-    redirectToIntegrations(res, "github_oauth_state_mismatch");
+    redirectToIntegrations(req, res, "github_oauth_state_mismatch");
     return;
   }
 
@@ -180,7 +205,7 @@ router.get("/integrations/github/callback", async (req: Request, res: Response) 
       client_id: clientId,
       client_secret: clientSecret,
       code,
-      redirect_uri: `${APP_URL}${GITHUB_CALLBACK_PATH}`,
+      redirect_uri: `${appUrl}${GITHUB_CALLBACK_PATH}`,
     }),
   });
 
@@ -189,14 +214,14 @@ router.get("/integrations/github/callback", async (req: Request, res: Response) 
     typeof tokenPayload.access_token === "string" ? tokenPayload.access_token : null;
 
   if (!tokenResponse.ok || !accessToken) {
-    redirectToIntegrations(res, "github_token_exchange_failed");
+    redirectToIntegrations(req, res, "github_token_exchange_failed");
     return;
   }
 
   const accountLogin = await fetchGitHubUserLogin(accessToken);
   await upsertGitHubIntegration(req.user.id, accessToken, accountLogin);
 
-  redirectToIntegrations(res);
+  redirectToIntegrations(req, res);
 });
 
 router.get("/integrations", async (req, res) => {

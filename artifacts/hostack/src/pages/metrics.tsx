@@ -58,20 +58,20 @@ function MetricCard({
   isEmpty?: boolean;
 }) {
   const display = value == null || isEmpty
-    ? <span className="text-muted-foreground text-2xl">—</span>
-    : <span className={`text-3xl font-bold tabular-nums ${colorClass}`}>{typeof value === "number" ? value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : value}{unit && <span className="text-lg ml-1 font-normal text-muted-foreground">{unit}</span>}</span>;
+    ? <span className="text-zinc-400 text-2xl">—</span>
+    : <span className={`text-3xl font-semibold tabular-nums ${colorClass}`}>{typeof value === "number" ? value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : value}{unit && <span className="ml-1 text-lg font-normal text-zinc-400">{unit}</span>}</span>;
 
   return (
-    <Card className="border-border/50 bg-card/40">
+    <Card className="hover:bg-zinc-900">
       <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`p-2.5 rounded-xl bg-white/5 ${colorClass}`}>
+        <div className="mb-4 flex items-start justify-between">
+          <div className={`rounded-xl border border-zinc-800 bg-zinc-950 p-2.5 ${colorClass}`}>
             <Icon className="w-5 h-5" />
           </div>
         </div>
         {display}
-        <p className="text-sm text-muted-foreground mt-2">{label}</p>
-        {subtext && <p className="text-xs text-muted-foreground/60 mt-0.5">{subtext}</p>}
+        <p className="mt-2 text-sm text-zinc-400">{label}</p>
+        {subtext && <p className="mt-0.5 text-xs text-zinc-500">{subtext}</p>}
       </CardContent>
     </Card>
   );
@@ -147,7 +147,7 @@ export default function MetricsPage() {
         <AppPageSection className="gap-5">
         <div className="flex items-center gap-3">
           <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-64 bg-card/50 border-border/50">
+            <SelectTrigger className="w-64">
               <SelectValue placeholder="Select project..." />
             </SelectTrigger>
             <SelectContent>
@@ -178,14 +178,14 @@ export default function MetricsPage() {
         </div>
 
         {!selectedProject ? (
-          <div className="text-center py-20 text-muted-foreground">
+          <div className="py-20 text-center text-zinc-400">
             <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-20" />
             <p>Select a project to view metrics</p>
           </div>
         ) : summaryQuery.isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 bg-card/50 animate-pulse rounded-xl border border-border/50" />
+              <div key={i} className="h-32 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
             ))}
           </div>
         ) : (
@@ -219,7 +219,7 @@ export default function MetricsPage() {
                 label="P95 Latency"
                 value={summary?.p95LatencyMs}
                 unit="ms"
-                colorClass={summary?.p95LatencyMs && summary.p95LatencyMs > 500 ? "text-orange-400" : "text-cyan-400"}
+                colorClass={summary?.p95LatencyMs && summary.p95LatencyMs > 500 ? "text-orange-400" : "text-blue-400"}
                 isEmpty={isEmpty}
               />
               <MetricCard
@@ -253,7 +253,7 @@ export default function MetricsPage() {
                 label="Bandwidth"
                 value={summary?.bandwidthKb}
                 unit="KB/s"
-                colorClass="text-indigo-400"
+                colorClass="text-violet-400"
                 isEmpty={isEmpty}
               />
             </div>
@@ -261,37 +261,37 @@ export default function MetricsPage() {
             {/* Charts row */}
             {!isEmpty && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-border/50 bg-card/30">
+                <Card className="hover:bg-zinc-900">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground font-medium">Requests/min (last 10 snapshots)</CardTitle>
+                    <CardTitle className="text-sm font-medium text-zinc-400">Requests/min (last 10 snapshots)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MiniBarChart values={DEMO_REQUESTS} color="bg-blue-500" />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <div className="mt-2 flex justify-between text-xs text-zinc-400">
                       <span>min: {Math.min(...DEMO_REQUESTS)}</span>
                       <span>max: {Math.max(...DEMO_REQUESTS)}</span>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-border/50 bg-card/30">
+                <Card className="hover:bg-zinc-900">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground font-medium">P95 Latency ms (last 10)</CardTitle>
+                    <CardTitle className="text-sm font-medium text-zinc-400">P95 Latency ms (last 10)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <MiniBarChart values={DEMO_LATENCY} color="bg-cyan-500" />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <MiniBarChart values={DEMO_LATENCY} color="bg-blue-500" />
+                    <div className="mt-2 flex justify-between text-xs text-zinc-400">
                       <span>min: {Math.min(...DEMO_LATENCY)}ms</span>
                       <span>max: {Math.max(...DEMO_LATENCY)}ms</span>
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="border-border/50 bg-card/30">
+                <Card className="hover:bg-zinc-900">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground font-medium">Error Rate % (last 10)</CardTitle>
+                    <CardTitle className="text-sm font-medium text-zinc-400">Error Rate % (last 10)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MiniBarChart values={DEMO_ERRORS} color="bg-red-500" />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <div className="mt-2 flex justify-between text-xs text-zinc-400">
                       <span>min: {Math.min(...DEMO_ERRORS)}%</span>
                       <span>max: {Math.max(...DEMO_ERRORS)}%</span>
                     </div>
@@ -302,7 +302,7 @@ export default function MetricsPage() {
 
             {/* Health status detail */}
             {summary && (
-              <Card className="border-border/50 bg-card/30">
+              <Card className="hover:bg-zinc-900">
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     Deployment Health
@@ -319,26 +319,26 @@ export default function MetricsPage() {
                 {!isEmpty && (
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div className="p-3 rounded-lg bg-white/5 border border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">Error Threshold</p>
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <p className="mb-1 text-xs text-zinc-400">Error Threshold</p>
                         <p className={summary.errorRate != null && summary.errorRate > 5 ? "text-red-400 font-semibold" : "text-emerald-400 font-semibold"}>
                           {summary.errorRate != null ? `${summary.errorRate?.toFixed(2)}% / 5%` : "—"}
                         </p>
                       </div>
-                      <div className="p-3 rounded-lg bg-white/5 border border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">Latency Threshold</p>
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <p className="mb-1 text-xs text-zinc-400">Latency Threshold</p>
                         <p className={summary.p95LatencyMs != null && summary.p95LatencyMs > 500 ? "text-orange-400 font-semibold" : "text-emerald-400 font-semibold"}>
                           {summary.p95LatencyMs != null ? `${summary.p95LatencyMs?.toFixed(0)}ms / 500ms` : "—"}
                         </p>
                       </div>
-                      <div className="p-3 rounded-lg bg-white/5 border border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">Uptime</p>
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <p className="mb-1 text-xs text-zinc-400">Uptime</p>
                         <p className={summary.uptimePct != null && summary.uptimePct < 99 ? "text-orange-400 font-semibold" : "text-emerald-400 font-semibold"}>
                           {summary.uptimePct != null ? `${summary.uptimePct?.toFixed(2)}%` : "—"}
                         </p>
                       </div>
-                      <div className="p-3 rounded-lg bg-white/5 border border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">Throughput</p>
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <p className="mb-1 text-xs text-zinc-400">Throughput</p>
                         <p className="text-blue-400 font-semibold">
                           {summary.requestsPerMin != null ? `${summary.requestsPerMin?.toFixed(0)} req/min` : "—"}
                         </p>

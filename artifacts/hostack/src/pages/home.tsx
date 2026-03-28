@@ -26,21 +26,21 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 const DEPLOY_LINES = [
-  { text: "$ hostack deploy --prod", delay: 0, color: "text-green-400" },
-  { text: "[~] Connecting to repository...", delay: 600, color: "text-muted-foreground" },
-  { text: "[ok] Repository connected (main @ a3f29c1)", delay: 1200, color: "text-cyan-400" },
-  { text: "[~] AI Copilot analyzing build configuration...", delay: 1800, color: "text-purple-400" },
-  { text: '[ok] Copilot: Detected Next.js 14 - recommending "static export"', delay: 2600, color: "text-purple-400" },
-  { text: "[ok] Copilot: Auto-configured environment variables (3 secrets)", delay: 3200, color: "text-purple-400" },
-  { text: "[~] Installing dependencies...", delay: 3800, color: "text-muted-foreground" },
-  { text: "[ok] Dependencies installed (2.1s)", delay: 4600, color: "text-cyan-400" },
-  { text: "[~] Building project...", delay: 5000, color: "text-muted-foreground" },
-  { text: "[ok] Build completed (4.7s) - 12 pages, 340KB gzip", delay: 6200, color: "text-cyan-400" },
-  { text: "[~] Deploying to edge network...", delay: 6800, color: "text-muted-foreground" },
+  { text: "$ aetheria deploy --prod", delay: 0, color: "text-green-400" },
+  { text: "[~] Connecting to repository...", delay: 600, color: "text-zinc-500" },
+  { text: "[ok] Repository connected (main @ a3f29c1)", delay: 1200, color: "text-blue-400" },
+  { text: "[~] AI Copilot analyzing build configuration...", delay: 1800, color: "text-violet-400" },
+  { text: '[ok] Copilot: Detected Next.js 14 - recommending "static export"', delay: 2600, color: "text-violet-400" },
+  { text: "[ok] Copilot: Auto-configured environment variables (3 secrets)", delay: 3200, color: "text-violet-400" },
+  { text: "[~] Installing dependencies...", delay: 3800, color: "text-zinc-500" },
+  { text: "[ok] Dependencies installed (2.1s)", delay: 4600, color: "text-blue-400" },
+  { text: "[~] Building project...", delay: 5000, color: "text-zinc-500" },
+  { text: "[ok] Build completed (4.7s) - 12 pages, 340KB gzip", delay: 6200, color: "text-blue-400" },
+  { text: "[~] Deploying to edge network...", delay: 6800, color: "text-zinc-500" },
   { text: "[ok] Deployed to 42 edge locations", delay: 7800, color: "text-green-400" },
   { text: "", delay: 8200, color: "" },
-  { text: "Live at https://myapp.hostack.dev", delay: 8400, color: "text-green-400 font-bold" },
-  { text: "   Total time: 11.2s", delay: 8800, color: "text-muted-foreground" },
+  { text: "Live at https://aetheria-build-flow.com", delay: 8400, color: "text-green-400 font-bold" },
+  { text: "   Total time: 11.2s", delay: 8800, color: "text-zinc-500" },
 ];
 
 function useReducedMotion() {
@@ -107,13 +107,13 @@ function FakeTerminal() {
     <div
       role="img"
       aria-label="Simulated deployment terminal showing AI Copilot analyzing and deploying a Next.js project in 11 seconds"
-      className="w-full max-w-2xl mx-auto rounded-xl border border-white/10 bg-black/60 backdrop-blur-sm shadow-2xl shadow-primary/10 overflow-hidden"
+      className="mx-auto w-full max-w-2xl overflow-hidden rounded-xl border border-zinc-800 bg-black shadow-2xl"
     >
-      <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border-b border-white/10">
+      <div className="flex items-center gap-2 border-b border-zinc-800 bg-zinc-950 px-4 py-3">
         <div className="w-3 h-3 rounded-full bg-red-500/80" />
         <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
         <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        <span className="ml-2 text-xs text-muted-foreground font-mono">hostack - deploy</span>
+        <span className="ml-2 font-mono text-xs text-zinc-500">aetheria - deploy</span>
       </div>
       <div ref={terminalRef} className="p-4 font-mono text-sm leading-relaxed h-[320px] overflow-y-auto scrollbar-thin">
         {DEPLOY_LINES.slice(0, visibleLines).map((line, i) => (
@@ -138,7 +138,7 @@ const HOW_IT_WORKS_STEPS = [
     step: 1,
     icon: GitBranch,
     title: "Connect Your Repo",
-    description: "Link your GitHub repository in one click. Hostack auto-detects your framework and branch.",
+    description: "Link your GitHub repository in one click. Aetheria auto-detects your framework and branch.",
   },
   {
     step: 2,
@@ -242,36 +242,36 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 relative overflow-hidden">
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white selection:bg-violet-500/30">
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-20">
         <img
           src={`${import.meta.env.BASE_URL}images/hero-glow.png`}
           alt=""
-          className="w-full h-full object-cover mix-blend-screen"
+          className="h-full w-full object-cover opacity-50"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(139,92,246,0.16),transparent_30%),linear-gradient(to_bottom,rgba(9,9,11,0.2),rgba(9,9,11,1))]" />
       </div>
 
-      <nav className="relative z-10 border-b border-white/5 bg-background/50 backdrop-blur-xl sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-white">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+      <nav className="sticky top-0 relative z-10 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+          <div className="flex items-center gap-2 text-xl font-semibold tracking-tight text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-violet-400">
               <Boxes className="w-5 h-5" />
             </div>
-            Hostack
+            Aetheria
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
-            <a href="#compare" className="hover:text-white transition-colors">Compare</a>
+          <div className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
+            <a href="#features" className="transition-colors hover:text-white">Features</a>
+            <a href="#how-it-works" className="transition-colors hover:text-white">How it Works</a>
+            <a href="#compare" className="transition-colors hover:text-white">Compare</a>
           </div>
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
-              <Button onClick={() => setLocation("/dashboard")} className="font-semibold shadow-lg shadow-primary/20">
+              <Button onClick={() => setLocation("/dashboard")} className="font-medium">
                 Go to Dashboard
               </Button>
             ) : (
-              <Button onClick={() => login("/dashboard")} className="font-semibold shadow-lg shadow-primary/20">
+              <Button onClick={() => login("/dashboard")} className="font-medium">
                 Log In
               </Button>
             )}
@@ -282,34 +282,34 @@ export default function Home() {
       <main className="relative z-10">
         {isFallbackMode && (
           <section className="px-6 pt-6">
-            <div className="max-w-5xl mx-auto rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <div className="mx-auto max-w-5xl rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               Local fallback mode is active. Auth and database-backed API routes are stubbed until real configuration is provided.
             </div>
           </section>
         )}
 
-        <section className="pt-24 md:pt-32 pb-8 px-6 text-center max-w-5xl mx-auto">
+        <section className="mx-auto max-w-5xl px-6 pb-8 pt-24 text-center md:pt-32">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-sm text-purple-300 mb-8">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-sm text-violet-300">
               <Bot className="w-4 h-4" />
               <span>Powered by AI Deploy Copilot</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1]">
+            <h1 className="mb-6 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl">
               Your AI Copilot for
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-cyan-400">
+              <span className="text-zinc-400">
                 Zero-Config Deploys.
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Hostack&apos;s AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
+            <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl">
+              Aetheria&apos;s AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
               Connect, deploy, done - faster than any other platform.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" onClick={handleCTA} className="h-12 px-8 text-base shadow-xl shadow-primary/25 w-full sm:w-auto">
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Button size="lg" onClick={handleCTA} className="h-12 w-full px-8 text-base sm:w-auto">
                 {isAuthenticated ? "Enter Dashboard" : "Start Deploying Free"} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 px-8 text-base bg-white/5 border-white/10 text-white hover:bg-white/10 w-full sm:w-auto">
+              <Button asChild size="lg" variant="outline" className="h-12 w-full px-8 text-base sm:w-auto">
                 <a href={DOCS_URL} target="_blank" rel="noreferrer">
                   Read the Docs
                 </a>
@@ -318,7 +318,7 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section className="pb-24 px-6">
+        <section className="px-6 pb-24">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -328,11 +328,11 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section id="how-it-works" className="py-24 px-6 border-y border-white/5">
-          <div className="max-w-5xl mx-auto">
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">How It Works</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+        <section id="how-it-works" className="border-y border-zinc-800 px-6 py-24">
+          <div className="mx-auto max-w-5xl">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">How It Works</h2>
+              <p className="mx-auto max-w-xl text-lg text-zinc-400">
                 Three steps. No config files. No YAML nightmares.
               </p>
             </motion.div>
@@ -341,29 +341,29 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid md:grid-cols-3 gap-8"
+              className="grid gap-8 md:grid-cols-3"
             >
               {HOW_IT_WORKS_STEPS.map((s) => (
-                <motion.div key={s.step} variants={itemVariants} className="relative text-center p-8">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center mx-auto mb-6">
+                <motion.div key={s.step} variants={itemVariants} className="app-panel relative text-center">
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 text-violet-400">
                     <s.icon className="w-7 h-7" />
                   </div>
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-lg shadow-primary/30">
+                  <div className="absolute left-1/2 top-0 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-violet-500/20 bg-violet-500/10 text-sm font-semibold text-violet-300">
                     {s.step}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{s.title}</h3>
-                  <p className="text-muted-foreground">{s.description}</p>
+                  <h3 className="mb-3 text-xl font-semibold text-white">{s.title}</h3>
+                  <p className="text-zinc-400">{s.description}</p>
                 </motion.div>
               ))}
             </motion.div>
           </div>
         </section>
 
-        <section id="features" className="py-24 px-6 bg-white/[0.02]">
-          <div className="max-w-7xl mx-auto">
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Everything You Need to Ship</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+        <section id="features" className="px-6 py-24">
+          <div className="mx-auto max-w-7xl">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">Everything You Need to Ship</h2>
+              <p className="mx-auto max-w-xl text-lg text-zinc-400">
                 From AI-powered configuration to global edge deployments - all in one platform.
               </p>
             </motion.div>
@@ -372,28 +372,26 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
             >
               {FEATURES.map((f) => (
                 <motion.div
                   key={f.title}
                   variants={itemVariants}
-                  className={`p-6 rounded-2xl border shadow-xl hover:-translate-y-1 transition-transform duration-300 ${
-                    f.highlight
-                      ? "bg-gradient-to-br from-purple-500/10 to-primary/10 border-purple-500/30"
-                      : "bg-card border-border"
+                  className={`rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-sm transition hover:bg-zinc-800 ${
+                    f.highlight ? "ring-1 ring-violet-500/20" : ""
                   }`}
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${
-                    f.highlight ? "bg-purple-500/20 text-purple-400" : "bg-primary/10 text-primary"
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl border ${
+                    f.highlight ? "border-violet-500/20 bg-violet-500/10 text-violet-400" : "border-zinc-800 bg-zinc-950 text-zinc-300"
                   }`}>
                     <f.icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-                  <p className="text-muted-foreground text-sm">{f.description}</p>
+                  <h3 className="mb-2 text-lg font-semibold text-white">{f.title}</h3>
+                  <p className="text-sm text-zinc-400">{f.description}</p>
                   {f.highlight && (
-                    <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-purple-300 bg-purple-500/10 px-2.5 py-1 rounded-full border border-purple-500/20">
-                      <Bot className="w-3 h-3" /> Hostack Exclusive
+                    <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-300">
+                      <Bot className="w-3 h-3" /> Aetheria Exclusive
                     </div>
                   )}
                 </motion.div>
@@ -402,11 +400,11 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="compare" className="py-24 px-6 border-t border-white/5">
-          <div className="max-w-4xl mx-auto">
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">How Hostack Compares</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+        <section id="compare" className="border-t border-zinc-800 px-6 py-24">
+          <div className="mx-auto max-w-4xl">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-16 text-center">
+              <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">How Aetheria Compares</h2>
+              <p className="mx-auto max-w-xl text-lg text-zinc-400">
                 The only platform with an AI copilot that configures and fixes your deploys.
               </p>
             </motion.div>
@@ -415,30 +413,30 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="rounded-2xl border border-white/10 overflow-hidden bg-card"
+              className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900"
             >
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/5">
-                      <th className="text-left px-6 py-4 text-muted-foreground font-medium">Feature</th>
-                      <th className="text-center px-6 py-4 text-primary font-bold">Hostack</th>
-                      <th className="text-center px-6 py-4 text-muted-foreground font-medium">Vercel</th>
-                      <th className="text-center px-6 py-4 text-muted-foreground font-medium">Netlify</th>
+                    <tr className="border-b border-zinc-800 bg-zinc-950">
+                      <th className="px-6 py-4 text-left font-medium text-zinc-400">Feature</th>
+                      <th className="px-6 py-4 text-center font-semibold text-violet-400">Aetheria</th>
+                      <th className="px-6 py-4 text-center font-medium text-zinc-400">Vercel</th>
+                      <th className="px-6 py-4 text-center font-medium text-zinc-400">Netlify</th>
                     </tr>
                   </thead>
                   <tbody>
                     {COMPARISON_FEATURES.map((row, i) => (
-                      <tr key={row.name} className={`border-b border-white/5 ${i % 2 === 0 ? "bg-white/[0.02]" : ""}`}>
-                        <td className="px-6 py-3.5 text-white font-medium">{row.name}</td>
+                      <tr key={row.name} className={`border-b border-zinc-800 ${i % 2 === 0 ? "bg-zinc-950/60" : ""}`}>
+                        <td className="px-6 py-3.5 font-medium text-white">{row.name}</td>
                         <td className="text-center px-6 py-3.5">
                           {row.hostack ? <><Check aria-hidden className="w-5 h-5 text-green-400 mx-auto" /><span className="sr-only">Yes</span></> : <><X aria-hidden className="w-5 h-5 text-red-400/50 mx-auto" /><span className="sr-only">No</span></>}
                         </td>
                         <td className="text-center px-6 py-3.5">
-                          {row.vercel ? <><Check aria-hidden className="w-5 h-5 text-muted-foreground mx-auto" /><span className="sr-only">Yes</span></> : <><X aria-hidden className="w-5 h-5 text-red-400/50 mx-auto" /><span className="sr-only">No</span></>}
+                          {row.vercel ? <><Check aria-hidden className="mx-auto h-5 w-5 text-zinc-400" /><span className="sr-only">Yes</span></> : <><X aria-hidden className="mx-auto h-5 w-5 text-red-400/50" /><span className="sr-only">No</span></>}
                         </td>
                         <td className="text-center px-6 py-3.5">
-                          {row.netlify ? <><Check aria-hidden className="w-5 h-5 text-muted-foreground mx-auto" /><span className="sr-only">Yes</span></> : <><X aria-hidden className="w-5 h-5 text-red-400/50 mx-auto" /><span className="sr-only">No</span></>}
+                          {row.netlify ? <><Check aria-hidden className="mx-auto h-5 w-5 text-zinc-400" /><span className="sr-only">Yes</span></> : <><X aria-hidden className="mx-auto h-5 w-5 text-red-400/50" /><span className="sr-only">No</span></>}
                         </td>
                       </tr>
                     ))}
@@ -449,64 +447,64 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20 px-6 bg-gradient-to-r from-primary/10 via-purple-500/10 to-cyan-500/10 border-y border-white/5">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to deploy smarter?</h2>
-            <p className="text-muted-foreground text-lg mb-8">
+        <section className="border-y border-zinc-800 px-6 py-20">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-zinc-800 bg-zinc-900 px-6 py-12 text-center shadow-sm">
+            <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">Ready to deploy smarter?</h2>
+            <p className="mb-8 text-lg text-zinc-400">
               Join developers who ship faster with AI-powered deployments. Free forever for personal projects.
             </p>
-            <Button size="lg" onClick={handleCTA} className="h-12 px-10 text-base shadow-xl shadow-primary/25">
+            <Button size="lg" onClick={handleCTA} className="h-12 px-10 text-base">
               {isAuthenticated ? "Go to Dashboard" : "Get Started - It's Free"} <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/5 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+      <footer className="relative z-10 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-6 py-12">
+          <div className="mb-12 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 font-bold text-lg text-white mb-4">
-                <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+              <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-violet-400">
                   <Boxes className="w-4 h-4" />
                 </div>
-                Hostack
+                Aetheria
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-zinc-400">
                 The AI-powered deployment platform for modern frontend teams.
               </p>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a></li>
-                <li><a href="#compare" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Changelog</a></li>
+              <h4 className="mb-4 text-sm font-semibold text-white">Product</h4>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                <li><a href="#features" className="transition-colors hover:text-white">Features</a></li>
+                <li><a href="#how-it-works" className="transition-colors hover:text-white">How it Works</a></li>
+                <li><a href="#compare" className="transition-colors hover:text-white">Pricing</a></li>
+                <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Changelog</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href={DOCS_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Docs</a></li>
-                <li><a href={REPO_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors flex items-center gap-1.5"><Github className="w-3.5 h-3.5" /> GitHub</a></li>
-                <li><a href={STATUS_URL} className="hover:text-white transition-colors flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Status</a></li>
+              <h4 className="mb-4 text-sm font-semibold text-white">Resources</h4>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                <li><a href={DOCS_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-white"><BookOpen className="w-3.5 h-3.5" /> Docs</a></li>
+                <li><a href={REPO_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-white"><Github className="w-3.5 h-3.5" /> GitHub</a></li>
+                <li><a href={STATUS_URL} className="flex items-center gap-1.5 transition-colors hover:text-white"><Activity className="w-3.5 h-3.5" /> Status</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href={PUBLIC_ROUTES.about} className="hover:text-white transition-colors">About</Link></li>
-                <li><a href={DEVTO_ARTICLE_URL} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Blog</a></li>
-                <li><Link href={PUBLIC_ROUTES.careers} className="hover:text-white transition-colors">Careers</Link></li>
+              <h4 className="mb-4 text-sm font-semibold text-white">Company</h4>
+              <ul className="space-y-2 text-sm text-zinc-400">
+                <li><Link href={PUBLIC_ROUTES.about} className="transition-colors hover:text-white">About</Link></li>
+                <li><a href={DEVTO_ARTICLE_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Blog</a></li>
+                <li><Link href={PUBLIC_ROUTES.careers} className="transition-colors hover:text-white">Careers</Link></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Hostack. All rights reserved.</p>
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-zinc-800 pt-8 text-sm text-zinc-400 sm:flex-row">
+            <p>&copy; {new Date().getFullYear()} Aetheria Build Flow. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <Link href={PUBLIC_ROUTES.privacy} className="hover:text-white transition-colors">Privacy</Link>
-              <Link href={PUBLIC_ROUTES.terms} className="hover:text-white transition-colors">Terms</Link>
+              <Link href={PUBLIC_ROUTES.privacy} className="transition-colors hover:text-white">Privacy</Link>
+              <Link href={PUBLIC_ROUTES.terms} className="transition-colors hover:text-white">Terms</Link>
             </div>
           </div>
         </div>

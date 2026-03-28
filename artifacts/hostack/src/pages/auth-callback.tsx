@@ -7,8 +7,10 @@ export default function AuthCallback() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-      <p className="text-sm text-muted-foreground">Completing sign-in...</p>
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-400 shadow-sm">
+        Completing sign-in...
+      </div>
     </div>
   );
 }

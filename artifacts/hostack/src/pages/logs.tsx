@@ -181,7 +181,7 @@ export default function LogsPage() {
         <AppPageSection className="gap-5">
         <div className="flex flex-col gap-3 md:flex-row">
           <Select value={selectedProject} onValueChange={(v) => { setSelectedProject(v); setStreamLogs([]); setIsLiveTail(false); }}>
-            <SelectTrigger className="w-full md:w-64 bg-card/50 border-border/50">
+            <SelectTrigger className="w-full md:w-64">
               <SelectValue placeholder="Select project..." />
             </SelectTrigger>
             <SelectContent>
@@ -192,7 +192,7 @@ export default function LogsPage() {
           </Select>
 
           <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="w-full md:w-36 bg-card/50 border-border/50">
+            <SelectTrigger className="w-full md:w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -206,22 +206,22 @@ export default function LogsPage() {
           </Select>
 
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
             <Input
               placeholder="Search logs..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 bg-card/50 border-border/50"
+              className="pl-9"
             />
           </div>
 
           <div className="flex items-center gap-2">
             <Button
-              variant={isLiveTail ? "default" : "outline"}
+              variant={isLiveTail ? "secondary" : "outline"}
               size="sm"
               onClick={() => setIsLiveTail(v => !v)}
               disabled={!selectedProject}
-              className={`gap-2 relative ${isLiveTail ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-600" : ""}`}
+              className={isLiveTail ? "gap-2 border-violet-500/20 bg-violet-500/10 text-violet-300 hover:bg-violet-500/15" : "gap-2"}
             >
               <Radio className="w-4 h-4" />
               {isLiveTail ? <LiveTailBadge /> : "Live Tail"}
@@ -259,41 +259,41 @@ export default function LogsPage() {
           </div>
         </div>
 
-        <Card className="border-border/50 bg-card/20">
-          <CardHeader className="pb-3 border-b border-border/50">
+        <Card>
+          <CardHeader className="border-b border-zinc-800 pb-3">
             <CardTitle className="text-sm flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Terminal className="w-4 h-4" />
                 {isLiveTail ? "Live Stream" : "Log History"}
                 {selectedProject && (
-                  <span className="text-xs text-muted-foreground font-normal">
+                  <span className="text-xs font-normal text-zinc-400">
                     — {projects.find(p => p.id === selectedProject)?.name}
                   </span>
                 )}
               </span>
               {isLiveTail && (
-                <span className="relative flex items-center gap-1.5 text-xs text-emerald-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="relative flex items-center gap-1.5 text-xs text-violet-400">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-violet-500" />
                   Streaming live
                 </span>
               )}
               {!isLiveTail && !logsQuery.isLoading && (
-                <span className="text-xs text-muted-foreground font-normal">{filteredLogs.length} entries</span>
+                <span className="text-xs font-normal text-zinc-400">{filteredLogs.length} entries</span>
               )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="bg-zinc-950 font-mono text-xs leading-relaxed h-[580px] overflow-y-auto rounded-b-xl">
+            <div className="h-[580px] overflow-y-auto rounded-b-xl bg-black font-mono text-sm leading-relaxed text-green-400">
               {!selectedProject ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="flex h-full items-center justify-center text-zinc-500">
                   Select a project to view logs
                 </div>
               ) : logsQuery.isLoading && !isLiveTail ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground gap-2">
+                <div className="flex h-full items-center justify-center gap-2 text-zinc-500">
                   <RefreshCw className="w-4 h-4 animate-spin" /> Loading logs...
                 </div>
               ) : filteredLogs.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-zinc-500">
                   <Terminal className="w-10 h-10 opacity-20" />
                   <div className="text-center">
                     <p className="font-medium mb-1">{isLiveTail ? "Waiting for log entries..." : "No logs found"}</p>
@@ -309,14 +309,14 @@ export default function LogsPage() {
                   {filteredLogs.map((log) => {
                     const cfg = LEVEL_CONFIG[log.level as keyof typeof LEVEL_CONFIG] || LEVEL_CONFIG.info;
                     return (
-                      <div key={log.id} className="flex gap-3 hover:bg-white/5 rounded px-2 py-0.5 group transition-colors">
-                        <span className="text-zinc-600 select-none w-20 flex-shrink-0 text-[11px] mt-0.5">
+                      <div key={log.id} className="group flex gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-900">
+                        <span className="mt-0.5 w-20 flex-shrink-0 select-none text-[11px] text-zinc-600">
                           {format(new Date(log.createdAt), "HH:mm:ss.SSS")}
                         </span>
-                        <span className={`w-14 flex-shrink-0 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${cfg.color}`}>
+                        <span className={`flex w-14 flex-shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
                           {log.level}
                         </span>
-                        <span className="text-zinc-500 w-16 flex-shrink-0 text-[11px] mt-0.5 truncate">
+                        <span className="mt-0.5 w-16 flex-shrink-0 truncate text-[11px] text-zinc-500">
                           {log.source || "app"}
                         </span>
                         <span className={`flex-1 ${cfg.color} whitespace-pre-wrap break-all`}>
