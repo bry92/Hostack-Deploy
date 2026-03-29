@@ -1,4 +1,5 @@
 import { createApp } from "./app.ts";
+import { validateHostedConfiguration } from "./lib/hostedConfig.js";
 
 const rawPort = process.env["PORT"];
 
@@ -15,6 +16,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 async function main() {
+  validateHostedConfiguration();
   const { app, runtime } = await createApp();
 
   let startBackgroundServices:

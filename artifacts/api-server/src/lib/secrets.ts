@@ -14,8 +14,7 @@ const SENSITIVE_METADATA_KEYS = [
 
 let warnedMissingKey = false;
 
-function getEncryptionKey(): Buffer | null {
-  const raw = process.env["SECRET_ENCRYPTION_KEY"]?.trim();
+export function parseEncryptionKey(raw: string | null | undefined): Buffer | null {
   if (!raw) return null;
 
   if (/^[0-9a-fA-F]{64}$/.test(raw)) {
@@ -32,6 +31,10 @@ function getEncryptionKey(): Buffer | null {
   throw new Error(
     "SECRET_ENCRYPTION_KEY must be 32 bytes encoded as base64 or 64 hex characters.",
   );
+}
+
+export function getEncryptionKey(): Buffer | null {
+  return parseEncryptionKey(process.env["SECRET_ENCRYPTION_KEY"]?.trim());
 }
 
 function getRequiredEncryptionKey(): Buffer | null {

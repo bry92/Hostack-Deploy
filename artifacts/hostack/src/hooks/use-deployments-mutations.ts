@@ -16,7 +16,18 @@ import {
 } from "@workspace/api-client-react";
 
 const TERMINAL_STATUSES = new Set(["ready", "deployed", "failed"]);
-const ACTIVE_STATUSES = new Set(["queued", "preparing", "cloning", "detecting", "installing", "building", "uploading"]);
+const ACTIVE_STATUSES = new Set([
+  "queued",
+  "preparing",
+  "cloning",
+  "detecting",
+  "installing",
+  "building",
+  "packaging",
+  "deploying",
+  "verifying",
+  "uploading",
+]);
 
 export function useDeploymentsMutations() {
   const queryClient = useQueryClient();
