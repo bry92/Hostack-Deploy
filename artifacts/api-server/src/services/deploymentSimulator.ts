@@ -1,16 +1,22 @@
 import { db } from "@workspace/db";
 import { deploymentLogsTable, deploymentsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
+import { classifyDeploymentExecutionError } from "./deploymentExecutionErrors.js";
+import {
+  markDeploymentFailed,
+  markDeploymentReady,
+  setDeploymentExecutionPhase,
+} from "./deploymentStateMachine.js";
 
 const SIMULATION_STEPS = [
-  { status: "preparing", message: "Simulation mode: preparing deployment", delay: 200 },
-  { status: "cloning", message: "Simulation mode: cloning repository snapshot", delay: 250 },
-  { status: "detecting", message: "Simulation mode: detecting framework", delay: 250 },
-  { status: "installing", message: "Simulation mode: installing dependencies", delay: 250 },
-  { status: "building", message: "Simulation mode: building artifact", delay: 300 },
-  { status: "packaging", message: "Simulation mode: packaging artifact", delay: 250 },
-  { status: "deploying", message: "Simulation mode: deploying artifact", delay: 250 },
-  { status: "verifying", message: "Simulation mode: verifying deployment", delay: 250 },
+  { phase: "preparing", message: "Simulation mode: preparing deployment", delay: 200 },
+  { phase: "cloning", message: "Simulation mode: cloning repository snapshot", delay: 250 },
+  { phase: "detecting", message: "Simulation mode: detecting framework", delay: 250 },
+  { phase: "installing", message: "Simulation mode: installing dependencies", delay: 250 },
+  { phase: "building", message: "Simulation mode: building artifact", delay: 300 },
+  { phase: "packaging", message: "Simulation mode: packaging artifact", delay: 250 },
+  { phase: "deploying", message: "Simulation mode: deploying artifact", delay: 250 },
+  { phase: "verifying", message: "Simulation mode: verifying deployment", delay: 250 },
 ] as const;
 
 async function sleep(ms: number): Promise<void> {
@@ -19,17 +25,17 @@ async function sleep(ms: number): Promise<void> {
 
 export async function simulateDeployment(deploymentId: string): Promise<void> {
   try {
-    await db
-      .update(deploymentsTable)
-      .set({
-        status: "queued",
+    await setDeploymentExecutionPhase(deploymentId, "preparing", {
+      updates: {
+        completedAt: null,
+        durationSeconds: null,
         executionMode: "simulated",
-        simulated: true,
-        runtimeKind: "static",
-        startedAt: new Date(),
         failureReason: null,
-      })
-      .where(eq(deploymentsTable.id, deploymentId));
+        runtimeKind: "static",
+        simulated: true,
+        startedAt: new Date(),
+      },
+    });
 
     let stepOrder = 0;
     let cumulativeDelay = 0;
@@ -38,10 +44,7 @@ export async function simulateDeployment(deploymentId: string): Promise<void> {
       await sleep(step.delay);
       cumulativeDelay += step.delay;
 
-      await db
-        .update(deploymentsTable)
-        .set({ status: step.status })
-        .where(eq(deploymentsTable.id, deploymentId));
+      await setDeploymentExecutionPhase(deploymentId, step.phase);
 
       await db.insert(deploymentLogsTable).values({
         deploymentId,
@@ -54,18 +57,18 @@ export async function simulateDeployment(deploymentId: string): Promise<void> {
     const deploymentUrl = `https://simulated-${deploymentId.slice(0, 8)}.hostack.app`;
     const completedAt = new Date();
 
-    await db
-      .update(deploymentsTable)
-      .set({
-        status: "ready",
+    await markDeploymentReady(deploymentId, {
+      message: "Simulation completed successfully",
+      updates: {
         completedAt,
-        durationSeconds: Math.round(cumulativeDelay / 1000),
+        currentPhase: null,
         deploymentUrl,
+        durationSeconds: Math.round(cumulativeDelay / 1000),
         executionMode: "simulated",
-        simulated: true,
         runtimeKind: "static",
-      })
-      .where(eq(deploymentsTable.id, deploymentId));
+        simulated: true,
+      },
+    });
 
     await db.insert(deploymentLogsTable).values({
       deploymentId,
@@ -74,16 +77,26 @@ export async function simulateDeployment(deploymentId: string): Promise<void> {
       stepOrder: stepOrder,
     });
   } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    await db
-      .update(deploymentsTable)
-      .set({
-        status: "failed",
+    const classifiedError = classifyDeploymentExecutionError(error, {
+      phase: "simulating",
+    });
+    const reason = classifiedError.message;
+    await markDeploymentFailed(deploymentId, reason, {
+      phase: "simulating",
+      updates: {
         completedAt: new Date(),
-        failureReason: reason,
         executionMode: "simulated",
         simulated: true,
-      })
-      .where(eq(deploymentsTable.id, deploymentId));
+      },
+    });
+
+    await db.insert(deploymentLogsTable).values({
+      deploymentId,
+      logLevel: "error",
+      message: `Simulation mode: deployment failed: ${reason}`,
+      stepOrder: SIMULATION_STEPS.length + 1,
+    });
+
+    throw classifiedError;
   }
 }

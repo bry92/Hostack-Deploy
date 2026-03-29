@@ -14,14 +14,25 @@ function getEnv(...names: string[]): string | undefined {
   return undefined;
 }
 
-function requireEnv(primaryName: string, ...fallbackNames: string[]): string {
+const NON_PRODUCTION = process.env["NODE_ENV"] !== "production";
+
+function resolveEnv(
+  primaryName: string,
+  fallbackNames: string[],
+  developmentFallback: string,
+): string {
   const value = getEnv(primaryName, ...fallbackNames);
-  if (!value) {
-    throw new Error(
-      `Missing required environment variable: ${[primaryName, ...fallbackNames].join(" or ")}`,
-    );
+  if (value) {
+    return value;
   }
-  return value;
+
+  if (NON_PRODUCTION) {
+    return developmentFallback;
+  }
+
+  throw new Error(
+    `Missing required environment variable: ${[primaryName, ...fallbackNames].join(" or ")}`,
+  );
 }
 
 function normalizeIssuerUrl(value: string): string {
@@ -32,6 +43,18 @@ function normalizeIssuerUrl(value: string): string {
 
 function normalizeAppUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
+}
+
+function assertAppUrl(value: string): void {
+  if (!value) {
+    throw new Error("APP_URL is required for auth flow");
+  }
+
+  try {
+    new URL(value);
+  } catch {
+    throw new Error(`Invalid APP_URL: ${value}`);
+  }
 }
 
 function getClientAuth(): client.ClientAuth | undefined {
@@ -52,14 +75,20 @@ function getClientAuth(): client.ClientAuth | undefined {
 export const OIDC_ISSUER_URL = normalizeIssuerUrl(
   IS_FALLBACK
     ? process.env.OIDC_ISSUER_URL ?? process.env.AUTH0_DOMAIN ?? "https://dev-fallback.auth0.local"
-    : requireEnv("OIDC_ISSUER_URL", "AUTH0_DOMAIN"),
+    : resolveEnv("OIDC_ISSUER_URL", ["AUTH0_DOMAIN"], "https://dev-auth0-placeholder.invalid"),
 );
-export const APP_URL = normalizeAppUrl(
-  IS_FALLBACK ? process.env.APP_URL ?? "http://localhost:3000" : requireEnv("APP_URL"),
+const RESOLVED_APP_URL = normalizeAppUrl(
+  IS_FALLBACK ? process.env.APP_URL ?? "http://localhost:3000" : resolveEnv("APP_URL", [], "http://localhost:3000"),
 );
+assertAppUrl(RESOLVED_APP_URL);
+export const APP_URL = RESOLVED_APP_URL;
+export const CANONICAL_APP_URL = APP_URL.replace(/\/+$/, "");
+export const CALLBACK_URL = `${CANONICAL_APP_URL}/api/callback`;
+console.log("APP_URL:", CANONICAL_APP_URL);
+console.log("CALLBACK_URL:", CALLBACK_URL);
 export const OIDC_CLIENT_ID = IS_FALLBACK
   ? process.env.OIDC_CLIENT_ID ?? process.env.AUTH0_CLIENT_ID ?? "dev-fallback-client-id"
-  : requireEnv("OIDC_CLIENT_ID", "AUTH0_CLIENT_ID");
+  : resolveEnv("OIDC_CLIENT_ID", ["AUTH0_CLIENT_ID"], "dev-placeholder-client-id");
 export const OIDC_CLIENT_SECRET = getEnv(
   "OIDC_CLIENT_SECRET",
   "AUTH0_CLIENT_SECRET",
@@ -72,11 +101,11 @@ export const OIDC_AUDIENCE = getEnv("OIDC_AUDIENCE", "AUTH0_AUDIENCE");
 export const OIDC_PROMPT = getEnv("OIDC_PROMPT", "AUTH0_PROMPT");
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
-export const COOKIE_SECURE = new URL(APP_URL).protocol === "https:";
+export const COOKIE_SECURE = new URL(CANONICAL_APP_URL).protocol === "https:";
 
 export function getAllowedCorsOrigins(): string[] {
   const configured = getEnv("CORS_ALLOWED_ORIGINS");
-  if (!configured) return [APP_URL];
+  if (!configured) return [CANONICAL_APP_URL];
 
   return configured
     .split(",")

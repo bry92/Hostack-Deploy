@@ -209,7 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const redirectUri = getBrowserOrigin();
+  const browserOrigin = getBrowserOrigin();
+  const redirectUri = browserOrigin ? `${browserOrigin}/api/callback` : null;
 
   if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID || !redirectUri) {
     return (

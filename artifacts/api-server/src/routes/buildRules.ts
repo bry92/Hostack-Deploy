@@ -328,7 +328,7 @@ router.post("/webhooks/:projectId/:secret", async (req, res) => {
     .insert(deploymentsTable)
     .values({
       projectId,
-      status: "queued",
+      status: "pending",
       environment: deployEnvironment,
       triggerType: "webhook",
       executionMode: determineExecutionMode(project),

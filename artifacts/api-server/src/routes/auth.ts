@@ -10,7 +10,8 @@ import {
   deleteSession,
   SESSION_COOKIE,
   SESSION_TTL,
-  APP_URL,
+  CANONICAL_APP_URL,
+  CALLBACK_URL,
   COOKIE_SECURE,
   OIDC_ISSUER_URL,
   OIDC_CLIENT_ID,
@@ -19,10 +20,12 @@ import {
   OIDC_SCOPE,
   type SessionData,
 } from "../lib/auth.js";
+import { createSafeReturnToResolver } from "../lib/safeReturnTo.js";
 
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 
 const router: IRouter = Router();
+const getSafeReturnTo = createSafeReturnToResolver(CANONICAL_APP_URL);
 
 const MobileExchangeBody = z.object({
   code: z.string(),
@@ -52,38 +55,17 @@ function setOidcCookie(res: Response, name: string, value: string) {
   });
 }
 
-function getSafeReturnTo(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
-  return value;
-}
-
-function getForwardedHeaderValue(value: string | string[] | undefined): string | undefined {
-  if (!value) return undefined;
-  const first = Array.isArray(value) ? value[0] : value;
-  return first?.split(",")[0]?.trim() || undefined;
-}
-
-function getRequestAppUrl(req: Request): string {
-  const host =
-    getForwardedHeaderValue(req.headers["x-forwarded-host"]) ??
-    req.get("host") ??
-    undefined;
-
-  if (!host) {
-    return APP_URL;
+function getAuth0Domain(): string {
+  const configured = process.env.AUTH0_DOMAIN?.trim();
+  if (configured) {
+    return configured.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
   }
 
-  const protocol =
-    getForwardedHeaderValue(req.headers["x-forwarded-proto"]) ??
-    (req.secure ? "https" : new URL(APP_URL).protocol.replace(/:$/, ""));
-
-  return `${protocol}://${host}`.replace(/\/+$/, "");
+  return new URL(OIDC_ISSUER_URL).host;
 }
 
 function redirectToAuthError(req: Request, res: Response, reason: string) {
-  const target = new URL(getRequestAppUrl(req));
+  const target = new URL(CANONICAL_APP_URL);
   target.searchParams.set("auth_error", reason);
   res.redirect(target.href);
 }
@@ -132,9 +114,10 @@ router.get("/auth/user", (req: Request, res: Response) => {
 
 router.get("/login", async (req: Request, res: Response) => {
   const config = await getOidcConfig();
-  const callbackUrl = `${getRequestAppUrl(req)}/api/callback`;
 
-  const returnTo = getSafeReturnTo(req.query.returnTo);
+  const returnTo = getSafeReturnTo(
+    typeof req.query.returnTo === "string" ? req.query.returnTo : undefined,
+  );
 
   const state = oidc.randomState();
   const nonce = oidc.randomNonce();
@@ -142,7 +125,7 @@ router.get("/login", async (req: Request, res: Response) => {
   const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
 
   const authorizationParams: Record<string, string> = {
-    redirect_uri: callbackUrl,
+    redirect_uri: CALLBACK_URL,
     scope: OIDC_SCOPE,
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
@@ -167,8 +150,9 @@ router.get("/login", async (req: Request, res: Response) => {
 });
 
 router.get("/callback", async (req: Request, res: Response) => {
+  console.log("Auth callback hit");
+
   const config = await getOidcConfig();
-  const callbackUrl = `${getRequestAppUrl(req)}/api/callback`;
 
   const codeVerifier = req.cookies?.code_verifier;
   const nonce = req.cookies?.nonce;
@@ -179,9 +163,8 @@ router.get("/callback", async (req: Request, res: Response) => {
     return;
   }
 
-  const currentUrl = new URL(
-    `${callbackUrl}?${new URL(req.url, `http://${req.headers.host}`).searchParams}`,
-  );
+  const currentUrl = new URL(req.originalUrl || "/api/callback", `${CANONICAL_APP_URL}/`);
+  currentUrl.pathname = "/api/callback";
 
   let tokens: oidc.TokenEndpointResponse & oidc.TokenEndpointResponseHelpers;
   try {
@@ -197,7 +180,9 @@ router.get("/callback", async (req: Request, res: Response) => {
     return;
   }
 
-  const returnTo = getSafeReturnTo(req.cookies?.return_to);
+  const returnTo = getSafeReturnTo(
+    typeof req.cookies?.return_to === "string" ? req.cookies.return_to : undefined,
+  );
 
   res.clearCookie("code_verifier", { path: "/" });
   res.clearCookie("nonce", { path: "/" });
@@ -232,18 +217,15 @@ router.get("/callback", async (req: Request, res: Response) => {
 });
 
 router.get("/logout", async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
-  const appUrl = getRequestAppUrl(req);
+  console.log("Logout triggered");
 
   const sid = getSessionId(req);
   await clearSession(res, sid);
 
-  const endSessionUrl = oidc.buildEndSessionUrl(config, {
-    client_id: OIDC_CLIENT_ID!,
-    post_logout_redirect_uri: appUrl,
-  });
-
-  res.redirect(endSessionUrl.href);
+  const logoutUrl = new URL(`https://${getAuth0Domain()}/v2/logout`);
+  logoutUrl.searchParams.set("client_id", OIDC_CLIENT_ID);
+  logoutUrl.searchParams.set("returnTo", CANONICAL_APP_URL);
+  res.redirect(logoutUrl.href);
 });
 
 router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) => {

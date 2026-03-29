@@ -9,6 +9,16 @@ import { deploymentsTable, deploymentLogsTable, projectsTable, buildRulesTable, 
 import { eq, and, desc } from "drizzle-orm";
 import { coerce, satisfies, validRange } from "semver";
 import { x as extractTarball } from "tar";
+import {
+  classifyDeploymentExecutionError,
+  DeploymentExecutionError,
+  type DeploymentExecutionPhase,
+} from "./deploymentExecutionErrors.js";
+import {
+  markDeploymentFailed,
+  markDeploymentReady,
+  setDeploymentExecutionPhase,
+} from "./deploymentStateMachine.js";
 import { dispatchDeployNotification } from "./notificationDispatcher.js";
 import {
   activateNodeDeployment,
@@ -29,19 +39,6 @@ type FrameworkType =
   | "node-api"
   | "static"
   | "unknown";
-
-type DeployStatus =
-  | "queued"
-  | "preparing"
-  | "cloning"
-  | "detecting"
-  | "installing"
-  | "building"
-  | "packaging"
-  | "deploying"
-  | "verifying"
-  | "ready"
-  | "failed";
 
 const DEFAULT_COMMAND_TIMEOUT_MS = 5 * 60 * 1000;
 const DEFAULT_INSTALL_TIMEOUT_MS = 15 * 60 * 1000;
@@ -136,17 +133,6 @@ async function getNextStepOrder(deploymentId: string): Promise<number> {
     .limit(1);
 
   return latestLog ? latestLog.stepOrder + 1 : 0;
-}
-
-async function setStatus(
-  deploymentId: string,
-  status: DeployStatus,
-  failureReason?: string | null,
-): Promise<void> {
-  await db
-    .update(deploymentsTable)
-    .set({ status, failureReason: failureReason ?? null })
-    .where(eq(deploymentsTable.id, deploymentId));
 }
 
 function parseCommand(command: string): { cmd: string; args: string[] } {
@@ -1083,20 +1069,42 @@ async function writeBuildMetadata(buildRoot: string, runtimeKind: RuntimeKind) {
 }
 
 export async function buildDeployment(deploymentId: string): Promise<void> {
+  let currentPhase: DeploymentExecutionPhase = "preparing";
   const [deployment] = await db
     .select()
     .from(deploymentsTable)
     .where(eq(deploymentsTable.id, deploymentId));
 
-  if (!deployment) throw new Error(`Deployment ${deploymentId} not found`);
+  if (!deployment) {
+    throw new DeploymentExecutionError({
+      code: "deployment_not_found",
+      message: `Deployment ${deploymentId} not found`,
+      retryable: false,
+      phase: currentPhase,
+    });
+  }
 
   const [project] = await db
     .select()
     .from(projectsTable)
     .where(eq(projectsTable.id, deployment.projectId));
 
-  if (!project) throw new Error(`Project not found for deployment ${deploymentId}`);
-  if (!project.repoUrl) throw new Error("No repository URL configured for this project");
+  if (!project) {
+    throw new DeploymentExecutionError({
+      code: "project_not_found",
+      message: `Project not found for deployment ${deploymentId}`,
+      retryable: false,
+      phase: currentPhase,
+    });
+  }
+  if (!project.repoUrl) {
+    throw new DeploymentExecutionError({
+      code: "missing_repository",
+      message: "No repository URL configured for this project",
+      retryable: false,
+      phase: currentPhase,
+    });
+  }
 
   const branch = deployment.branch || project.repoBranch || "main";
   const githubToken = await getProjectGitHubToken(project);
@@ -1124,17 +1132,16 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
   const log = (message: string, level: LogLevel = "info") =>
     insertLog(deploymentId, message, level, stepOrderRef);
 
-  await db
-    .update(deploymentsTable)
-    .set({
-      status: "preparing",
+  await setDeploymentExecutionPhase(deploymentId, "preparing", {
+    updates: {
+      completedAt: null,
+      durationSeconds: null,
       executionMode: "real",
+      failureReason: null,
       simulated: false,
       startedAt: new Date(),
-      completedAt: null,
-      failureReason: null,
-    })
-    .where(eq(deploymentsTable.id, deploymentId));
+    },
+  });
 
   dispatchDeployNotification(deploymentId, "deploy_started").catch(() => {});
 
@@ -1144,7 +1151,8 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     await log(`Repository: ${project.repoUrl}`);
     await log(`Branch: ${branch}`);
 
-    await setStatus(deploymentId, "cloning");
+    currentPhase = "cloning";
+    await setDeploymentExecutionPhase(deploymentId, "cloning");
     await log("State transition: cloning");
     await log(`Running clone for ${project.repoUrl}`);
     await cloneRepo(project.repoUrl, branch, workDir, deploymentId, stepOrderRef, githubToken, deployment.commitHash);
@@ -1157,13 +1165,18 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
       commitMessage = info.message;
     }
 
-    await setStatus(deploymentId, "detecting");
+    currentPhase = "detecting";
+    await setDeploymentExecutionPhase(deploymentId, "detecting");
     await log("State transition: detecting");
 
     const resolvedPlan = await resolveDeploymentPlan(workDir, preferredRoot);
     if (!resolvedPlan) {
-      failureReason = "No package.json found in repository root or known app directories";
-      throw new Error(failureReason);
+      throw new DeploymentExecutionError({
+        code: "configuration_invalid",
+        message: "No package.json found in repository root or known app directories",
+        retryable: false,
+        phase: currentPhase,
+      });
     }
 
     const buildRoot = resolvedPlan.buildRoot;
@@ -1196,9 +1209,13 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
         await log(`Node compatibility: ${compatible ? "compatible" : "mismatch"}`);
 
         if (!compatible) {
-          failureReason =
-            `Node version mismatch: project requests ${nodeVersionRequirement.raw} via ${nodeVersionRequirement.source}, but worker is running Node ${workerNodeVersion}`;
-          throw new Error(failureReason);
+          throw new DeploymentExecutionError({
+            code: "configuration_invalid",
+            message:
+              `Node version mismatch: project requests ${nodeVersionRequirement.raw} via ${nodeVersionRequirement.source}, but worker is running Node ${workerNodeVersion}`,
+            retryable: false,
+            phase: currentPhase,
+          });
         }
       } else {
         await log(
@@ -1211,7 +1228,8 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
     await log(`Resolved install command: ${installCommand}`);
     await log(`Resolved build command: ${explicitBuildCommand ?? "none"}`);
 
-    await setStatus(deploymentId, "installing");
+    currentPhase = "installing";
+    await setDeploymentExecutionPhase(deploymentId, "installing");
     await log("State transition: installing");
     await log(`Executing install command: ${installCommand}`);
 
@@ -1234,12 +1252,17 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
 
     let buildWasRun = false;
     if (shouldRunBuild) {
-      await setStatus(deploymentId, "building");
+      currentPhase = "building";
+      await setDeploymentExecutionPhase(deploymentId, "building");
       await log("State transition: building");
 
       if (!buildCommand.trim() && FRAMEWORKS_REQUIRING_BUILD.includes(frameworkType)) {
-        failureReason = `Build command is required for ${frameworkType}`;
-        throw new Error(failureReason);
+        throw new DeploymentExecutionError({
+          code: "configuration_invalid",
+          message: `Build command is required for ${frameworkType}`,
+          retryable: false,
+          phase: currentPhase,
+        });
       }
 
       await log(`Executing build command: ${buildCommand}`);
@@ -1294,22 +1317,32 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
           artifactSourcePath = resolved.artifactSourcePath;
           outputDirectory = resolved.outputDirectory;
         } catch (error) {
-          failureReason = `Artifact invalid: ${(error as Error).message}`;
-          throw error;
+          throw new DeploymentExecutionError({
+            code: "artifact_invalid",
+            message: `Artifact invalid: ${(error as Error).message}`,
+            retryable: false,
+            phase: "packaging",
+            cause: error,
+          });
         }
       }
     }
 
     if (runtimeKind === null) {
-      failureReason = "Could not determine whether deployment should run as a Node service or static artifact";
-      throw new Error(failureReason);
+      throw new DeploymentExecutionError({
+        code: "runtime_undetermined",
+        message: "Could not determine whether deployment should run as a Node service or static artifact",
+        retryable: false,
+        phase: currentPhase,
+      });
     }
 
     await log(`Runtime kind: ${runtimeKind}`);
 
     await writeBuildMetadata(buildRoot, runtimeKind);
 
-    await setStatus(deploymentId, "packaging");
+    currentPhase = "packaging";
+    await setDeploymentExecutionPhase(deploymentId, "packaging");
     await log("State transition: packaging");
     await log(`Packaging artifact from ${relative(workDir, artifactSourcePath) || "."}`);
 
@@ -1324,9 +1357,11 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
       },
     });
 
-    await setStatus(deploymentId, "deploying");
+    currentPhase = "deploying";
+    await setDeploymentExecutionPhase(deploymentId, "deploying");
     await log("State transition: deploying");
-    await setStatus(deploymentId, "verifying");
+    currentPhase = "verifying";
+    await setDeploymentExecutionPhase(deploymentId, "verifying");
     await log("State transition: verifying");
 
     let deploymentUrl: string;
@@ -1375,41 +1410,41 @@ export async function buildDeployment(deploymentId: string): Promise<void> {
       })
       .where(eq(projectsTable.id, project.id));
 
-    await db
-      .update(deploymentsTable)
-      .set({
-        status: "ready",
-        durationSeconds,
-        completedAt: new Date(),
-        deploymentUrl,
+    await markDeploymentReady(deploymentId, {
+      message: "Deployment execution completed successfully",
+      updates: {
         artifactPath,
-        runtimeKind,
-        outputDirectory,
         commitHash: commitHash || null,
         commitMessage: commitMessage
           ? commitMessage.slice(0, 490)
           : "Deploy via Hostack dashboard",
-      })
-      .where(eq(deploymentsTable.id, deploymentId));
+        completedAt: new Date(),
+        currentPhase: null,
+        deploymentUrl,
+        durationSeconds,
+        outputDirectory,
+        runtimeKind,
+      },
+    });
 
     dispatchDeployNotification(deploymentId, "deploy_succeeded").catch(() => {});
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
+    const err = classifyDeploymentExecutionError(error, {
+      phase: currentPhase,
+      fallbackMessage: failureReason ?? undefined,
+    });
     const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
     const reason = failureReason || err.message;
 
     await log(`Deployment failed: ${reason}`, "error");
-    await db
-      .update(deploymentsTable)
-      .set({
-        status: "failed",
+    await markDeploymentFailed(deploymentId, reason, {
+      phase: currentPhase,
+      updates: {
         completedAt: new Date(),
         durationSeconds,
-        failureReason: reason,
-      })
-      .where(eq(deploymentsTable.id, deploymentId));
-
-    dispatchDeployNotification(deploymentId, "deploy_failed").catch(() => {});
+      },
+    });
+    throw err;
   } finally {
     if (workDir) {
       await rm(workDir, { recursive: true, force: true }).catch(() => {});

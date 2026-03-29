@@ -6,6 +6,11 @@ import { db } from "@workspace/db";
 import { deploymentLogsTable, deploymentsTable } from "@workspace/db/schema";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { APP_URL } from "../lib/auth.js";
+import {
+  markDeploymentFailed,
+  markDeploymentReady,
+  setDeploymentExecutionPhase,
+} from "./deploymentStateMachine.js";
 
 export type RuntimeKind = "static" | "node-api";
 type LogLevel = "info" | "warn" | "error" | "success";
@@ -376,27 +381,26 @@ export async function activateStaticDeployment(params: {
 
   await clearCurrentDeployments(params.projectId, params.environment, params.branch);
 
-  await db
-    .update(deploymentsTable)
-    .set({
-      status: "ready",
-      isCurrent: true,
-      simulated: false,
-      executionMode: "real",
-      runtimeKind: "static",
-      artifactPath: params.artifactPath,
+  await markDeploymentReady(params.deploymentId, {
+    message: "Static deployment activated",
+    updates: {
       activeEnvironment: params.environment,
-      deploymentUrl,
-      installCommandUsed: params.installCommandUsed,
+      artifactPath: params.artifactPath,
       buildCommandUsed: params.buildCommandUsed,
       buildRoot: params.buildRoot,
-      outputDirectory: params.outputDirectory,
       commitHash: params.commitHash,
       commitMessage: params.commitMessage,
-      failureReason: null,
       completedAt: new Date(),
-    })
-    .where(eq(deploymentsTable.id, params.deploymentId));
+      currentPhase: null,
+      deploymentUrl,
+      executionMode: "real",
+      installCommandUsed: params.installCommandUsed,
+      isCurrent: true,
+      outputDirectory: params.outputDirectory,
+      runtimeKind: "static",
+      simulated: false,
+    },
+  });
 
   return deploymentUrl;
 }
@@ -439,15 +443,18 @@ export async function activateNodeDeployment(params: {
     },
     onExit: (code) => {
       runtimeRegistry.delete(params.deploymentId);
-      void db
-        .update(deploymentsTable)
-        .set({
-          isCurrent: false,
-          activeEnvironment: null,
-          status: "failed",
-          failureReason: `Runtime exited with code ${code ?? "unknown"}`,
-        })
-        .where(eq(deploymentsTable.id, params.deploymentId));
+      void markDeploymentFailed(
+        params.deploymentId,
+        `Runtime exited with code ${code ?? "unknown"}`,
+        {
+          phase: "deploying",
+          updates: {
+            activeEnvironment: null,
+            completedAt: new Date(),
+            isCurrent: false,
+          },
+        },
+      );
     },
   });
 
@@ -478,29 +485,28 @@ export async function activateNodeDeployment(params: {
     port: runtimePort,
   });
 
-  await db
-    .update(deploymentsTable)
-    .set({
-      status: "ready",
-      isCurrent: true,
-      simulated: false,
-      executionMode: "real",
-      runtimeKind: "node-api",
-      artifactPath: params.artifactPath,
+  await markDeploymentReady(params.deploymentId, {
+    message: "Node deployment activated",
+    updates: {
       activeEnvironment: params.environment,
-      deploymentUrl,
-      runtimeCommand,
-      runtimePort,
-      installCommandUsed: params.installCommandUsed,
+      artifactPath: params.artifactPath,
       buildCommandUsed: params.buildCommandUsed,
       buildRoot: params.buildRoot,
-      outputDirectory: params.outputDirectory,
       commitHash: params.commitHash,
       commitMessage: params.commitMessage,
-      failureReason: null,
       completedAt: new Date(),
-    })
-    .where(eq(deploymentsTable.id, params.deploymentId));
+      currentPhase: null,
+      deploymentUrl,
+      executionMode: "real",
+      installCommandUsed: params.installCommandUsed,
+      isCurrent: true,
+      outputDirectory: params.outputDirectory,
+      runtimeCommand,
+      runtimeKind: "node-api",
+      runtimePort,
+      simulated: false,
+    },
+  });
 
   return { deploymentUrl, runtimePort, runtimeCommand };
 }
@@ -521,21 +527,23 @@ export async function promoteArtifactToDeployment(params: {
     throw new Error("Source deployment does not have a reusable artifact");
   }
 
-  await db
-    .update(deploymentsTable)
-    .set({
-      status: "deploying",
-      runtimeKind: source.runtimeKind,
+  await setDeploymentExecutionPhase(params.deploymentId, "deploying", {
+    message: "Promoting existing artifact into deployment",
+    updates: {
       artifactPath: source.artifactPath,
-      buildRoot: source.buildRoot,
-      outputDirectory: source.outputDirectory,
-      installCommandUsed: source.installCommandUsed,
       buildCommandUsed: source.buildCommandUsed,
-      sourceDeploymentId: params.sourceDeploymentId,
+      buildRoot: source.buildRoot,
+      completedAt: null,
       executionMode: "real",
+      failureReason: null,
+      installCommandUsed: source.installCommandUsed,
+      outputDirectory: source.outputDirectory,
+      runtimeKind: source.runtimeKind,
       simulated: false,
-    })
-    .where(eq(deploymentsTable.id, params.deploymentId));
+      sourceDeploymentId: params.sourceDeploymentId,
+      startedAt: new Date(),
+    },
+  });
 
   if (source.runtimeKind === "node-api") {
     await activateNodeDeployment({
@@ -606,15 +614,18 @@ export async function resumeActiveNodeDeployments() {
       },
       onExit: (code) => {
         runtimeRegistry.delete(deployment.id);
-        void db
-          .update(deploymentsTable)
-          .set({
-            isCurrent: false,
-            activeEnvironment: null,
-            status: "failed",
-            failureReason: `Runtime exited with code ${code ?? "unknown"}`,
-          })
-          .where(eq(deploymentsTable.id, deployment.id));
+        void markDeploymentFailed(
+          deployment.id,
+          `Runtime exited with code ${code ?? "unknown"}`,
+          {
+            phase: "deploying",
+            updates: {
+              activeEnvironment: null,
+              completedAt: new Date(),
+              isCurrent: false,
+            },
+          },
+        );
       },
     });
 

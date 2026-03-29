@@ -20,7 +20,6 @@ import Logs from "@/pages/logs";
 import Metrics from "@/pages/metrics";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
-import AuthCallback from "@/pages/auth-callback";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
@@ -70,7 +69,6 @@ function Router() {
       <Route path="/logs">{() => <ProtectedRoute component={Logs} />}</Route>
       <Route path="/metrics">{() => <ProtectedRoute component={Metrics} />}</Route>
       <Route path="/settings">{() => <ProtectedRoute component={Settings} />}</Route>
-      <Route path="/callback" component={AuthCallback} />
       <Route component={NotFound} />
     </Switch>
   );

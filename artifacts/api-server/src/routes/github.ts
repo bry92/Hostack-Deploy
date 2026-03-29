@@ -325,7 +325,7 @@ router.post(
           .insert(deploymentsTable)
           .values({
             projectId: project.id,
-            status: "queued",
+            status: "pending",
             environment,
             triggerType: "webhook",
             executionMode: determineExecutionMode(project),
@@ -358,7 +358,7 @@ router.post(
           .insert(deploymentsTable)
           .values({
             projectId: project.id,
-            status: "queued",
+            status: "pending",
             environment: "preview",
             triggerType: "webhook",
             executionMode: determineExecutionMode(project),

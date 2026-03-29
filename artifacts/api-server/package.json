@@ -9,7 +9,8 @@
     "start": "node dist/index.cjs",
     "build": "tsx ./build.ts",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:return-to": "node --experimental-strip-types ./src/lib/safeReturnTo.test.ts"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",

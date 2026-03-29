@@ -205,7 +205,7 @@ router.post("/projects/:projectId/deployments", async (req, res) => {
     .insert(deploymentsTable)
     .values({
       projectId,
-      status: "queued",
+      status: "pending",
       environment,
       triggerType: "manual",
       executionMode: determineExecutionMode(project),
@@ -317,7 +317,7 @@ router.post("/deployments/:deploymentId/promote", async (req, res) => {
     .insert(deploymentsTable)
     .values({
       projectId: source.projectId,
-      status: "queued",
+      status: "pending",
       environment: "production",
       triggerType: "manual",
       executionMode: source.executionMode === "simulated" ? "simulated" : "real",
@@ -399,7 +399,7 @@ router.post("/projects/:projectId/deployments/:deploymentId/rollback", async (re
     .insert(deploymentsTable)
     .values({
       projectId,
-      status: "queued",
+      status: "pending",
       environment: "production",
       triggerType: "rollback",
       executionMode: target.executionMode === "simulated" ? "simulated" : "real",

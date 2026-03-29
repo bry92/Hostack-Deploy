@@ -1,9 +1,10 @@
 import { Router, type IRouter, type NextFunction, type Request, type Response } from "express";
 import { enqueueJob } from "@workspace/queue";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { IS_FALLBACK } from "../lib/runtimeMode.ts";
 
 const router: IRouter = Router();
+const notionDeployRequestsInFlight = new Set<string>();
 
 type GitHubRepoInfo = {
   default_branch?: string;
@@ -18,6 +19,13 @@ type RepoProjectResponse = {
   name: string;
   repoName?: string | null;
   repoOwner?: string | null;
+};
+
+type ParsedRepo = {
+  owner: string;
+  repoName: string;
+  repoUrl: string;
+  repoFullName: string;
 };
 
 function getProjectName(req: Request): string | null {
@@ -59,6 +67,74 @@ function getRepoFullName(req: Request): string | null {
 
   const trimmed = repoFullName.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function getRepoUrl(req: Request): string | null {
+  const repoUrl =
+    req.body?.repoUrl ??
+    (typeof req.query.repoUrl === "string" ? req.query.repoUrl : null);
+  if (typeof repoUrl !== "string") {
+    return null;
+  }
+
+  const trimmed = repoUrl.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getNotionPageId(req: Request): string | null {
+  const notionPageId =
+    req.body?.notionPageId ??
+    req.body?.pageId ??
+    (typeof req.query.notionPageId === "string" ? req.query.notionPageId : null) ??
+    (typeof req.query.pageId === "string" ? req.query.pageId : null);
+  if (typeof notionPageId !== "string") {
+    return null;
+  }
+
+  const trimmed = notionPageId.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getNotionDemoKey(req: Request): string | null {
+  const key =
+    req.body?.key ??
+    (typeof req.query.key === "string" ? req.query.key : null);
+  if (typeof key !== "string") {
+    return null;
+  }
+
+  const trimmed = key.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function isValidNotionPageId(pageId: string): boolean {
+  return /^[a-f0-9]{32}$/i.test(pageId.replace(/-/g, ""));
+}
+
+function parseGitHubRepoUrl(repoUrl: string): ParsedRepo | null {
+  try {
+    const normalized = repoUrl.trim().replace(/\.git$/, "");
+    const url = new URL(normalized);
+    if (url.protocol !== "https:" || !/(^|\.)github\.com$/i.test(url.hostname)) {
+      return null;
+    }
+
+    const parts = url.pathname.replace(/^\/+/, "").split("/").filter(Boolean);
+    if (parts.length < 2) {
+      return null;
+    }
+
+    const owner = parts[0];
+    const repoName = parts[1];
+    return {
+      owner,
+      repoName,
+      repoFullName: `${owner}/${repoName}`,
+      repoUrl: `https://github.com/${owner}/${repoName}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function getGitHubAccessToken(userId: string): Promise<string | null> {
@@ -109,6 +185,119 @@ async function getRepoDefaultBranch(
 ): Promise<string> {
   const repoInfo = await fetchGitHubJson<GitHubRepoInfo>(`repos/${owner}/${repoName}`, accessToken);
   return repoInfo?.default_branch?.trim() || "main";
+}
+
+async function createProjectAndInitialDeploymentFromRepo(input: {
+  notionPageId?: string | null;
+  repo: ParsedRepo;
+  userId: string;
+  accessToken?: string | null;
+}): Promise<RepoProjectResponse> {
+  const { repo, userId, accessToken, notionPageId } = input;
+  const repoBranch = accessToken
+    ? await getRepoDefaultBranch(repo.owner, repo.repoName, accessToken)
+    : "main";
+
+  const [{ db }, { deploymentsTable, projectsTable }, deploymentExecutor] = await Promise.all([
+    import("@workspace/db"),
+    import("@workspace/db/schema"),
+    import("../services/deploymentExecutor.js"),
+  ]);
+
+  const [created] = await db
+    .insert(projectsTable)
+    .values({
+      userId,
+      name: repo.repoName,
+      slug: slugify(repo.repoName),
+      framework: "unknown",
+      repoUrl: repo.repoUrl,
+      repoOwner: repo.owner,
+      repoName: repo.repoName,
+      repoBranch,
+      rootDirectory: "",
+      buildCommand: null,
+      installCommand: null,
+      autoDeploy: false,
+    })
+    .returning();
+
+  const executionMode = deploymentExecutor.determineExecutionMode(created);
+  let deployment:
+    | {
+        id: string;
+        projectId: string;
+      }
+    | undefined;
+
+  try {
+    [deployment] = await db
+      .insert(deploymentsTable)
+      .values({
+        projectId: created.id,
+        status: "pending",
+        notionPageId: notionPageId ?? null,
+        environment: "production",
+        triggerType: "api",
+        executionMode,
+        simulated: executionMode === "simulated",
+        branch: created.repoBranch || "main",
+        commitMessage: `Initial deploy for ${repo.repoFullName}`,
+      })
+      .returning({
+        id: deploymentsTable.id,
+        projectId: deploymentsTable.projectId,
+      });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[notion] metadata persist skipped during deployment insert: ${message}`);
+    [deployment] = await db
+      .insert(deploymentsTable)
+      .values({
+        projectId: created.id,
+        status: "pending",
+        environment: "production",
+        triggerType: "api",
+        executionMode,
+        simulated: executionMode === "simulated",
+        branch: created.repoBranch || "main",
+        commitMessage: `Initial deploy for ${repo.repoFullName}`,
+      })
+      .returning({
+        id: deploymentsTable.id,
+        projectId: deploymentsTable.projectId,
+      });
+  }
+
+  enqueueJob(db, {
+    type: "build_requested",
+    payload: { deploymentId: deployment.id },
+  }).catch(console.error);
+
+  return {
+    ...created,
+    deployment,
+  } satisfies RepoProjectResponse;
+}
+
+async function recentDeploymentExists(notionPageId: string): Promise<boolean> {
+  const [{ db }, { deploymentsTable }] = await Promise.all([
+    import("@workspace/db"),
+    import("@workspace/db/schema"),
+  ]);
+
+  const [existing] = await db
+    .select({ id: deploymentsTable.id })
+    .from(deploymentsTable)
+    .where(
+      and(
+        eq(deploymentsTable.notionPageId, notionPageId),
+        inArray(deploymentsTable.status, ["pending", "building", "deploying"]),
+      ),
+    )
+    .limit(1);
+
+  return !!existing;
 }
 
 async function forwardToFullProjectsRouter(
@@ -242,58 +431,18 @@ router.post("/projects/from-repo", async (req: Request, res: Response) => {
       return;
     }
 
-    const repoBranch = await getRepoDefaultBranch(owner, repoName, accessToken);
-    const [{ db }, { deploymentsTable, projectsTable }, deploymentExecutor] = await Promise.all([
-      import("@workspace/db"),
-      import("@workspace/db/schema"),
-      import("../services/deploymentExecutor.js"),
-    ]);
-
-    const [created] = await db
-      .insert(projectsTable)
-      .values({
-        userId: req.user.id,
-        name: repoName,
-        slug: slugify(repoName),
-        framework: "unknown",
-        repoUrl: `https://github.com/${repoFullName}`,
-        repoOwner: owner,
+    const created = await createProjectAndInitialDeploymentFromRepo({
+      repo: {
+        owner,
         repoName,
-        repoBranch: repoBranch,
-        rootDirectory: "",
-        buildCommand: null,
-        installCommand: null,
-        autoDeploy: false,
-      })
-      .returning();
+        repoFullName,
+        repoUrl: `https://github.com/${repoFullName}`,
+      },
+      userId: req.user.id,
+      accessToken,
+    });
 
-    const executionMode = deploymentExecutor.determineExecutionMode(created);
-    const [deployment] = await db
-      .insert(deploymentsTable)
-      .values({
-        projectId: created.id,
-        status: "queued",
-        environment: "production",
-        triggerType: "api",
-        executionMode,
-        simulated: executionMode === "simulated",
-        branch: created.repoBranch || "main",
-        commitMessage: `Initial deploy for ${repoFullName}`,
-      })
-      .returning({
-        id: deploymentsTable.id,
-        projectId: deploymentsTable.projectId,
-      });
-
-    enqueueJob(db, {
-      type: "build_requested",
-      payload: { deploymentId: deployment.id },
-    }).catch(console.error);
-
-    res.status(201).json({
-      ...created,
-      deployment,
-    } satisfies RepoProjectResponse);
+    res.status(201).json(created);
   } catch (error: any) {
     res.status(500).json({
       error: "failed_to_create_from_repo",
@@ -301,6 +450,111 @@ router.post("/projects/from-repo", async (req: Request, res: Response) => {
     });
   }
 });
+
+async function handleNotionDeploy(req: Request, res: Response) {
+  const repoUrl = getRepoUrl(req);
+  if (!repoUrl) {
+    res.status(400).json({ error: "repo_url_required" });
+    return;
+  }
+  if (!repoUrl.startsWith("https://github.com/")) {
+    res.status(400).json({ error: "invalid_repo_url" });
+    return;
+  }
+
+  const notionPageId = getNotionPageId(req);
+  if (!notionPageId) {
+    res.status(400).json({ error: "notion_page_id_required" });
+    return;
+  }
+  if (!isValidNotionPageId(notionPageId)) {
+    res.status(400).json({ error: "invalid_notion_page_id" });
+    return;
+  }
+
+  const expectedDemoKey = process.env.NOTION_DEMO_KEY?.trim();
+  const providedDemoKey = getNotionDemoKey(req);
+  if (!expectedDemoKey || providedDemoKey !== expectedDemoKey) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  if (notionDeployRequestsInFlight.has(notionPageId) || await recentDeploymentExists(notionPageId)) {
+    res.status(429).json({ error: "deployment_in_progress" });
+    return;
+  }
+
+  const repo = parseGitHubRepoUrl(repoUrl);
+  if (!repo) {
+    res.status(400).json({ error: "invalid_repo_url" });
+    return;
+  }
+
+  if (IS_FALLBACK) {
+    res.status(201).json({
+      deploymentId: "fallback-notion-deployment",
+      status: "started",
+    });
+    return;
+  }
+
+  console.log("Notion deploy triggered:", {
+    repoUrl,
+    notionPageId,
+  });
+
+  notionDeployRequestsInFlight.add(notionPageId);
+  try {
+    const userId = req.isAuthenticated() ? req.user.id : "notion-demo-user";
+    const accessToken = req.isAuthenticated()
+      ? await getGitHubAccessToken(req.user.id)
+      : null;
+    const [{ syncDeploymentToNotion, updateNotionPage }] = await Promise.all([
+      import("../services/notionDeploymentSync.js"),
+    ]);
+
+    const created = await createProjectAndInitialDeploymentFromRepo({
+      repo,
+      userId,
+      accessToken,
+      notionPageId,
+    });
+    const deploymentId = created.deployment?.id ?? null;
+
+    res.status(201).json({
+      deploymentId,
+      status: "started",
+    });
+
+    updateNotionPage({
+      aiSummary: "Deployment started...",
+      deploymentId,
+      pageId: notionPageId,
+      previewUrl: null,
+      repoUrl,
+      status: "building",
+    }).catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[notion] failed to mark page ${notionPageId} building: ${message}`);
+    });
+
+    if (deploymentId) {
+      syncDeploymentToNotion(deploymentId, { status: "building" }).catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[notion] failed to sync deployment ${deploymentId} to Notion: ${message}`);
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({
+      error: "failed_to_start_notion_deploy",
+      message: error?.message,
+    });
+  } finally {
+    notionDeployRequestsInFlight.delete(notionPageId);
+  }
+}
+
+router.get("/notion/deploy", handleNotionDeploy);
+router.post("/notion/deploy", handleNotionDeploy);
 
 router.delete("/projects/:projectId", async (req: Request, res: Response) => {
   const projectId = getProjectId(req);

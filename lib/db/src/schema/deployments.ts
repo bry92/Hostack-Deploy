@@ -1,4 +1,4 @@
-import { pgTable, timestamp, varchar, integer, text, boolean } from "drizzle-orm/pg-core";
+import { pgTable, timestamp, varchar, integer, text, boolean, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -6,7 +6,13 @@ import { z } from "zod/v4";
 export const deploymentsTable = pgTable("deployments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull(),
-  status: varchar("status", { length: 50 }).notNull().default("queued"),
+  status: varchar("status", { length: 50 }).notNull().default("pending"),
+  currentPhase: varchar("current_phase", { length: 50 }),
+  aiSummary: jsonb("ai_summary").$type<{
+    explanation: string;
+    suggestion: string;
+  } | null>(),
+  notionPageId: varchar("notion_page_id", { length: 255 }),
   environment: varchar("environment", { length: 50 }).notNull().default("production"),
   triggerType: varchar("trigger_type", { length: 50 }).notNull().default("manual"),
   executionMode: varchar("execution_mode", { length: 20 }).notNull().default("simulated"),
@@ -34,6 +40,17 @@ export const deploymentsTable = pgTable("deployments", {
   prNumber: integer("pr_number"),
 }).enableRLS();
 
+export const deploymentStateTransitionsTable = pgTable("deployment_state_transitions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  deploymentId: varchar("deployment_id").notNull(),
+  previousState: varchar("previous_state", { length: 50 }),
+  nextState: varchar("next_state", { length: 50 }).notNull(),
+  phase: varchar("phase", { length: 50 }),
+  jobId: varchar("job_id", { length: 255 }),
+  message: text("message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
+
 export const deploymentLogsTable = pgTable("deployment_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   deploymentId: varchar("deployment_id").notNull(),
@@ -52,4 +69,5 @@ export const insertDeploymentSchema = createInsertSchema(deploymentsTable).omit(
 });
 export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
 export type Deployment = typeof deploymentsTable.$inferSelect;
+export type DeploymentStateTransition = typeof deploymentStateTransitionsTable.$inferSelect;
 export type DeploymentLog = typeof deploymentLogsTable.$inferSelect;

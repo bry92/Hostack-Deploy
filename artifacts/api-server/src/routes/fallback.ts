@@ -1,13 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { CANONICAL_APP_URL } from "../lib/auth.js";
+import { createSafeReturnToResolver } from "../lib/safeReturnTo.js";
 
 const router: IRouter = Router();
-
-function getSafeReturnTo(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
-  }
-  return value;
-}
+const getSafeReturnTo = createSafeReturnToResolver(CANONICAL_APP_URL);
 
 router.get(["/health", "/healthz"], (_req: Request, res: Response) => {
   res.json({
@@ -32,7 +28,9 @@ router.get("/test", (_req: Request, res: Response) => {
 });
 
 router.get("/login", (req: Request, res: Response) => {
-  const returnTo = getSafeReturnTo(req.query.returnTo);
+  const returnTo = getSafeReturnTo(
+    typeof req.query.returnTo === "string" ? req.query.returnTo : undefined,
+  );
   res.redirect(returnTo);
 });
 
