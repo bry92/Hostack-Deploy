@@ -36,6 +36,9 @@ export async function createApp(): Promise<CreatedApp> {
     next();
   });
   app.use(runtime.authMiddleware);
+  app.get("/", (_req, res) => {
+    res.status(200).send("ok");
+  });
   app.get("/api/runtime", (_req, res) => {
     res.json({ mode: runtime.mode });
   });

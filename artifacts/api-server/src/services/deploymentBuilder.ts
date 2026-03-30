@@ -216,6 +216,7 @@ function runCommand(
       env: {
         ...baseEnv,
         CI: "true",
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
         FORCE_COLOR: "0",
         NO_COLOR: "1",
         GIT_TERMINAL_PROMPT: "0",
