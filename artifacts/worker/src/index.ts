@@ -42,6 +42,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function readBooleanEnv(name: string, fallback: boolean): boolean {
+  const rawValue = process.env[name]?.trim().toLowerCase();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (["1", "true", "yes", "on"].includes(rawValue)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(rawValue)) {
+    return false;
+  }
+
+  throw new Error(`Invalid ${name} value: "${rawValue}"`);
+}
+
 function parsePositiveIntEnv(name: string, fallback: number): number {
   const rawValue = process.env[name]?.trim();
   if (!rawValue) {
@@ -574,6 +591,14 @@ export async function runWorkerLoop(workerId = getWorkerId()): Promise<never> {
   }
 }
 
+async function runIdleLoop(): Promise<never> {
+  console.log("[worker] HOSTACK_RUN_EMBEDDED_WORKER=true; standalone worker is idle");
+
+  while (true) {
+    await sleep(60_000);
+  }
+}
+
 function isDirectExecution(): boolean {
   const entryPath = process.argv[1];
   if (!entryPath) {
@@ -584,5 +609,9 @@ function isDirectExecution(): boolean {
 }
 
 if (isDirectExecution()) {
-  void runWorkerLoop();
+  if (readBooleanEnv("HOSTACK_RUN_EMBEDDED_WORKER", false)) {
+    void runIdleLoop();
+  } else {
+    void runWorkerLoop();
+  }
 }

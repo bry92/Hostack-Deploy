@@ -15,6 +15,28 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+function readBooleanEnv(name: string, fallback: boolean): boolean {
+  const rawValue = process.env[name]?.trim().toLowerCase();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  if (["1", "true", "yes", "on"].includes(rawValue)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(rawValue)) {
+    return false;
+  }
+
+  console.warn(`[config] Invalid ${name} value "${rawValue}", using ${fallback}`);
+  return fallback;
+}
+
+function shouldRunEmbeddedWorker(): boolean {
+  return readBooleanEnv("HOSTACK_RUN_EMBEDDED_WORKER", false);
+}
+
 async function main() {
   validateHostedConfiguration();
   const { app, runtime } = await createApp();
@@ -24,9 +46,12 @@ async function main() {
     | undefined;
 
   if (runtime.mode === "full") {
-    const [{ schedulePreviewCleanup }, { resumeActiveNodeDeployments }] = await Promise.all([
+    const [{ schedulePreviewCleanup }, { resumeActiveNodeDeployments }, workerModule] = await Promise.all([
       import("./services/previewCleanup.js"),
       import("./services/deploymentRuntime.js"),
+      shouldRunEmbeddedWorker()
+        ? import("../../worker/src/index.ts")
+        : Promise.resolve(null),
     ]);
 
     startBackgroundServices = () => {
@@ -34,6 +59,18 @@ async function main() {
       resumeActiveNodeDeployments().catch((error) => {
         console.error("Failed to resume active deployment runtimes", error);
       });
+
+      if (workerModule) {
+        const workerId = `embedded-api-worker:${process.pid}`;
+        console.log(`[worker] starting embedded worker ${workerId}`);
+        workerModule.runWorkerLoop(workerId).catch((error) => {
+          console.error("Embedded worker loop stopped unexpectedly", error);
+        });
+      } else {
+        console.warn(
+          "[worker] embedded worker disabled; real deployments must execute on the same host that serves deployment artifacts and runtimes.",
+        );
+      }
     };
   }
 
