@@ -26,7 +26,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 const DEPLOY_LINES = [
-  { text: "$ aetheria deploy --prod", delay: 0, color: "text-green-400" },
+  { text: "$ hostack deploy --prod", delay: 0, color: "text-green-400" },
   { text: "[~] Connecting to repository...", delay: 600, color: "text-zinc-500" },
   { text: "[ok] Repository connected (main @ a3f29c1)", delay: 1200, color: "text-blue-400" },
   { text: "[~] AI Copilot analyzing build configuration...", delay: 1800, color: "text-violet-400" },
@@ -39,7 +39,7 @@ const DEPLOY_LINES = [
   { text: "[~] Deploying to edge network...", delay: 6800, color: "text-zinc-500" },
   { text: "[ok] Deployed to 42 edge locations", delay: 7800, color: "text-green-400" },
   { text: "", delay: 8200, color: "" },
-  { text: "Live at https://aetheria-build-flow.com", delay: 8400, color: "text-green-400 font-bold" },
+  { text: "Live at https://hostack.dev", delay: 8400, color: "text-green-400 font-bold" },
   { text: "   Total time: 11.2s", delay: 8800, color: "text-zinc-500" },
 ];
 
@@ -113,7 +113,7 @@ function FakeTerminal() {
         <div className="w-3 h-3 rounded-full bg-red-500/80" />
         <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
         <div className="w-3 h-3 rounded-full bg-green-500/80" />
-        <span className="ml-2 font-mono text-xs text-zinc-500">aetheria - deploy</span>
+        <span className="ml-2 font-mono text-xs text-zinc-500">hostack - deploy</span>
       </div>
       <div ref={terminalRef} className="p-4 font-mono text-sm leading-relaxed h-[320px] overflow-y-auto scrollbar-thin">
         {DEPLOY_LINES.slice(0, visibleLines).map((line, i) => (
@@ -138,7 +138,7 @@ const HOW_IT_WORKS_STEPS = [
     step: 1,
     icon: GitBranch,
     title: "Connect Your Repo",
-    description: "Link your GitHub repository in one click. Aetheria auto-detects your framework and branch.",
+    description: "Link your GitHub repository in one click. Hostack auto-detects your framework and branch.",
   },
   {
     step: 2,
@@ -258,7 +258,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-violet-400">
               <Boxes className="w-5 h-5" />
             </div>
-            Aetheria
+            Hostack
           </div>
           <div className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
             <a href="#features" className="transition-colors hover:text-white">Features</a>
@@ -302,7 +302,7 @@ export default function Home() {
               </span>
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 md:text-xl">
-              Aetheria&apos;s AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
+              Hostack's AI analyzes your repo, auto-configures your build, and fixes failures before you even notice.
               Connect, deploy, done - faster than any other platform.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -391,7 +391,7 @@ export default function Home() {
                   <p className="text-sm text-zinc-400">{f.description}</p>
                   {f.highlight && (
                     <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/20 bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-300">
-                      <Bot className="w-3 h-3" /> Aetheria Exclusive
+                      <Bot className="w-3 h-3" /> Hostack Exclusive
                     </div>
                   )}
                 </motion.div>
@@ -403,7 +403,7 @@ export default function Home() {
         <section id="compare" className="border-t border-zinc-800 px-6 py-24">
           <div className="mx-auto max-w-4xl">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="mb-16 text-center">
-              <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">How Aetheria Compares</h2>
+              <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">How Hostack Compares</h2>
               <p className="mx-auto max-w-xl text-lg text-zinc-400">
                 The only platform with an AI copilot that configures and fixes your deploys.
               </p>
@@ -420,7 +420,7 @@ export default function Home() {
                   <thead>
                     <tr className="border-b border-zinc-800 bg-zinc-950">
                       <th className="px-6 py-4 text-left font-medium text-zinc-400">Feature</th>
-                      <th className="px-6 py-4 text-center font-semibold text-violet-400">Aetheria</th>
+                      <th className="px-6 py-4 text-center font-semibold text-violet-400">Hostack</th>
                       <th className="px-6 py-4 text-center font-medium text-zinc-400">Vercel</th>
                       <th className="px-6 py-4 text-center font-medium text-zinc-400">Netlify</th>
                     </tr>
@@ -468,7 +468,7 @@ export default function Home() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-violet-400">
                   <Boxes className="w-4 h-4" />
                 </div>
-                Aetheria
+                Hostack
               </div>
               <p className="text-sm text-zinc-400">
                 The AI-powered deployment platform for modern frontend teams.
@@ -477,31 +477,31 @@ export default function Home() {
             <div>
               <h4 className="mb-4 text-sm font-semibold text-white">Product</h4>
               <ul className="space-y-2 text-sm text-zinc-400">
-                <li><a href="#features" className="transition-colors hover:text-white">Features</a></li>
-                <li><a href="#how-it-works" className="transition-colors hover:text-white">How it Works</a></li>
-                <li><a href="#compare" className="transition-colors hover:text-white">Pricing</a></li>
-                <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Changelog</a></li>
+                <li><Link href={PUBLIC_ROUTES.features} className="transition-colors hover:text-white">Features</Link></li>
+                <li><Link href={PUBLIC_ROUTES.compare} className="transition-colors hover:text-white">Compare</Link></li>
+                <li><Link href={PUBLIC_ROUTES.pricing} className="transition-colors hover:text-white">Pricing</Link></li>
+                <li><Link href={PUBLIC_ROUTES.changelog} className="transition-colors hover:text-white">Changelog</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="mb-4 text-sm font-semibold text-white">Resources</h4>
               <ul className="space-y-2 text-sm text-zinc-400">
-                <li><a href={DOCS_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-white"><BookOpen className="w-3.5 h-3.5" /> Docs</a></li>
-                <li><a href={REPO_URL} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-white"><Github className="w-3.5 h-3.5" /> GitHub</a></li>
-                <li><a href={STATUS_URL} className="flex items-center gap-1.5 transition-colors hover:text-white"><Activity className="w-3.5 h-3.5" /> Status</a></li>
+                <li><Link href={PUBLIC_ROUTES.docs} className="flex items-center gap-1.5 transition-colors hover:text-white"><BookOpen className="w-3.5 h-3.5" /> Docs</Link></li>
+                <li><Link href={PUBLIC_ROUTES.github} className="flex items-center gap-1.5 transition-colors hover:text-white"><Github className="w-3.5 h-3.5" /> GitHub</Link></li>
+                <li><Link href={PUBLIC_ROUTES.status} className="flex items-center gap-1.5 transition-colors hover:text-white"><Activity className="w-3.5 h-3.5" /> Status</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="mb-4 text-sm font-semibold text-white">Company</h4>
               <ul className="space-y-2 text-sm text-zinc-400">
                 <li><Link href={PUBLIC_ROUTES.about} className="transition-colors hover:text-white">About</Link></li>
-                <li><a href={DEVTO_ARTICLE_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Blog</a></li>
+                <li><Link href={PUBLIC_ROUTES.blog} className="transition-colors hover:text-white">Blog</Link></li>
                 <li><Link href={PUBLIC_ROUTES.careers} className="transition-colors hover:text-white">Careers</Link></li>
               </ul>
             </div>
           </div>
           <div className="flex flex-col items-center justify-between gap-4 border-t border-zinc-800 pt-8 text-sm text-zinc-400 sm:flex-row">
-            <p>&copy; {new Date().getFullYear()} Aetheria Build Flow. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Hostack. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href={PUBLIC_ROUTES.privacy} className="transition-colors hover:text-white">Privacy</Link>
               <Link href={PUBLIC_ROUTES.terms} className="transition-colors hover:text-white">Terms</Link>

@@ -20,6 +20,27 @@ import Logs from "@/pages/logs";
 import Metrics from "@/pages/metrics";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import Product from "@/pages/product";
+import Features from "@/pages/features";
+import Compare from "@/pages/compare";
+import Pricing from "@/pages/pricing";
+import Changelog from "@/pages/changelog";
+import Resources from "@/pages/resources";
+import Docs, {
+  DocsGettingStarted,
+  DocsGitHub,
+  DocsDeployments,
+  DocsDomains,
+  DocsSshKeys,
+  DocsEnvVars,
+  DocsPreview,
+  DocsRollback,
+  DocsIntegrations,
+} from "@/pages/docs";
+import GitHubPage from "@/pages/github";
+import Status from "@/pages/status";
+import Company from "@/pages/company";
+import BlogPost from "@/pages/blog-post";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient({
@@ -58,6 +79,26 @@ function Router() {
       <Route path="/careers" component={Careers} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/product" component={Product} />
+      <Route path="/features" component={Features} />
+      <Route path="/compare" component={Compare} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/changelog" component={Changelog} />
+      <Route path="/resources" component={Resources} />
+      <Route path="/docs" component={Docs} />
+      <Route path="/docs/getting-started" component={DocsGettingStarted} />
+      <Route path="/docs/github" component={DocsGitHub} />
+      <Route path="/docs/deployments" component={DocsDeployments} />
+      <Route path="/docs/domains" component={DocsDomains} />
+      <Route path="/docs/ssh-keys" component={DocsSshKeys} />
+      <Route path="/docs/env-vars" component={DocsEnvVars} />
+      <Route path="/docs/preview" component={DocsPreview} />
+      <Route path="/docs/rollback" component={DocsRollback} />
+      <Route path="/docs/integrations" component={DocsIntegrations} />
+      <Route path="/github" component={GitHubPage} />
+      <Route path="/status" component={Status} />
+      <Route path="/company" component={Company} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
       <Route path="/projects">{() => <ProtectedRoute component={Projects} />}</Route>
       <Route path="/projects/:id">{() => <ProtectedRoute component={ProjectDetail} />}</Route>

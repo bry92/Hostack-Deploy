@@ -1640,7 +1640,7 @@ function SshKeySection({ projectId }: { projectId: string }) {
                 "Copy the public key above",
                 "Go to your GitHub repository",
                 'Navigate to Settings → Deploy Keys → Add Deploy Key',
-                "Paste the public key and give it a name (e.g. \"Aetheria Deploy\")",
+                "Paste the public key and give it a name (e.g. \"Hostack Deploy\")",
                 'Enable "Allow write access" if your deployments need to push',
                 "Click Add Key",
               ].map((step, i) => (
@@ -1959,7 +1959,7 @@ function SettingsTab({ project }: { project: Project }) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Custom Domains</CardTitle>
-          <CardDescription>Attach your own domain names to this project. Configure DNS records to point to Aetheria.</CardDescription>
+          <CardDescription>Attach your own domain names to this project. Configure DNS records to point to Hostack.</CardDescription>
         </CardHeader>
         <CardContent>
           <CustomDomainsSection projectId={project.id} />

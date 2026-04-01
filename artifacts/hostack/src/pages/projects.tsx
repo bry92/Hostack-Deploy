@@ -245,7 +245,7 @@ export default function ProjectsPage() {
           title={isCreating ? "Import From GitHub" : "Projects"}
           description={
             isCreating
-              ? "Pick a repository and Aetheria will create the project, queue the first deployment, and route you straight into the build stream."
+              ? "Pick a repository and Hostack will create the project, queue the first deployment, and route you straight into the build stream."
               : "Manage application roots, repository connections, and deployment state across every project."
           }
           actions={

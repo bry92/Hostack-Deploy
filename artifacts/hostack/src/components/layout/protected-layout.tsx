@@ -28,7 +28,7 @@ export function ProtectedLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur md:hidden">
           <div className="flex h-14 items-center px-4">
             <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-white">
-              Aetheria
+              Hostack
             </Link>
           </div>
           <nav className="flex gap-2 overflow-x-auto px-4 pb-3">

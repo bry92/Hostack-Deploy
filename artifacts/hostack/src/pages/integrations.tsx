@@ -138,7 +138,7 @@ const PROVIDERS: readonly ProviderConfig[] = [
     badgeColor: "bg-amber-700/30 text-amber-300",
     docs: "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
     fields: [
-      { key: "bucket", label: "Bucket Name", type: "text", placeholder: "my-aetheria-artifacts", required: true },
+      { key: "bucket", label: "Bucket Name", type: "text", placeholder: "my-hostack-artifacts", required: true },
       { key: "region", label: "Region", type: "text", placeholder: "us-east-1", required: true },
       { key: "accessKeyId", label: "Access Key ID", type: "text", placeholder: "AKIAIOSFODNN7EXAMPLE", required: true },
       { key: "secretAccessKey", label: "Secret Access Key", type: "password", placeholder: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", required: true },
@@ -203,7 +203,7 @@ const GITHUB_ERROR_MESSAGES: Record<string, { description: string; title: string
   },
   github_token_exchange_failed: {
     title: "GitHub authorization completed, but token exchange failed",
-    description: "GitHub redirected back to Aetheria, but the backend could not exchange the code for an access token.",
+    description: "GitHub redirected back to Hostack, but the backend could not exchange the code for an access token.",
   },
 };
 
@@ -460,7 +460,7 @@ export default function Integrations() {
           eyebrow="Infrastructure"
           icon={<Link2Off className="h-5 w-5" />}
           title="Integrations"
-          description="Connect source control, DNS, storage, notifications, and analytics so Aetheria can operate as a real deployment control plane."
+          description="Connect source control, DNS, storage, notifications, and analytics so Hostack can operate as a real deployment control plane."
           actions={
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-1.5 text-zinc-400">
