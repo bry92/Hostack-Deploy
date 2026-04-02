@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Prefer running in the current directory when invoked from a WSL-native clone.
+# Fallback to the Windows-mounted path if not running inside WSL or if
+# the current directory is not the repo root.
 REPO="/mnt/c/Users/pageb/Documents/GitHub/Hostack-Deploy"
+if [ -f /proc/version ] && grep -iq "microsoft\|wsl" /proc/version 2>/dev/null; then
+  if [ -d "$(pwd)/.git" ]; then
+    REPO="$(pwd)"
+  fi
+else
+  REPO="${1:-$REPO}"
+fi
 cd "$REPO"
 
 echo "Fetching origin and ensuring branch exists..."
