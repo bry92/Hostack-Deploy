@@ -2,6 +2,9 @@ name: Regenerate pnpm-lock.yaml on Linux
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - ci/regenerate-pnpm-lockfile-linux
 
 permissions:
   contents: write
