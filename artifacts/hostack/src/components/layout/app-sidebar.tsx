@@ -128,7 +128,7 @@ export function AppSidebar() {
     <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 text-white md:flex">
       <div className="flex h-14 items-center border-b border-zinc-800 px-4">
         <Link href="/dashboard" className="text-lg font-semibold tracking-tight text-white">
-          Aetheria
+          Hostack
         </Link>
       </div>
 
@@ -156,7 +156,7 @@ export function AppSidebar() {
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-zinc-100">{displayName}</p>
-            <p className="truncate text-xs text-zinc-500">{user?.email || "aetheria operator"}</p>
+            <p className="truncate text-xs text-zinc-500">{user?.email || "hostack operator"}</p>
           </div>
         </div>
 

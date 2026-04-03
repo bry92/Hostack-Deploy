@@ -46,7 +46,7 @@ export default function Settings() {
           eyebrow="Settings"
           icon={<SettingsIcon className="h-5 w-5" />}
           title="Account Settings"
-          description="Review identity information, platform preferences, and the account-level controls that shape your Aetheria workspace."
+          description="Review identity information, platform preferences, and the account-level controls that shape your Hostack workspace."
         />
 
         <Card>
