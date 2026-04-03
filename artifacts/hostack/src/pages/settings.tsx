@@ -5,11 +5,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@workspace/auth-web";
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Settings as SettingsIcon } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
+  const [billingStatus, setBillingStatus] = useState<"idle" | "loading" | "error">("idle");
+
+  const handleManageSubscription = async () => {
+    setBillingStatus("loading");
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("billing_portal_failed");
+      }
+
+      const data = await response.json();
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error("missing_portal_url");
+    } catch (error) {
+      console.error("Failed to open billing portal", error);
+      setBillingStatus("error");
+    }
+  };
 
   return (
     <ProtectedLayout>
@@ -71,7 +99,7 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>Billing & Plan</CardTitle>
-              <CardDescription>Manage your subscription (Coming Phase 2)</CardDescription>
+              <CardDescription>Manage your subscription and plan details.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-4">
@@ -79,8 +107,15 @@ export default function Settings() {
                   <div className="font-medium text-white">Hobby Plan</div>
                   <div className="text-sm text-zinc-400">Free forever</div>
                 </div>
-                <Button variant="outline" disabled>Upgrade</Button>
+                <Button variant="outline" onClick={handleManageSubscription} disabled={billingStatus === "loading"}>
+                  {billingStatus === "loading" ? "Opening..." : "Manage Subscription"}
+                </Button>
               </div>
+              {billingStatus === "error" ? (
+                <p className="mt-3 text-sm text-red-400">
+                  Unable to open the billing portal. Please try again.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 

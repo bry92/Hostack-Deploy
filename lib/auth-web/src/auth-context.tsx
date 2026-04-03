@@ -26,11 +26,17 @@ interface ViteImportMeta extends ImportMeta {
   readonly env: Record<string, string | undefined>;
 }
 
+// Dev-only fallback credentials - should NEVER be used in production
 const FALLBACK_AUTH0_DOMAIN = "dev-3koeqweojjm248m1.us.auth0.com";
 const FALLBACK_AUTH0_CLIENT_ID = "5efja6URDR5gizWpwRFGuM8mEb7wZiFh";
 const viteEnv = (import.meta as ViteImportMeta).env;
-const AUTH0_DOMAIN = viteEnv["VITE_AUTH0_DOMAIN"] ?? FALLBACK_AUTH0_DOMAIN;
-const AUTH0_CLIENT_ID = viteEnv["VITE_AUTH0_CLIENT_ID"] ?? FALLBACK_AUTH0_CLIENT_ID;
+const isDevelopment = viteEnv["DEV"] === "true" || viteEnv["MODE"] === "development";
+const AUTH0_DOMAIN = viteEnv["VITE_AUTH0_DOMAIN"] || (isDevelopment ? FALLBACK_AUTH0_DOMAIN : throwError("VITE_AUTH0_DOMAIN"));
+const AUTH0_CLIENT_ID = viteEnv["VITE_AUTH0_CLIENT_ID"] || (isDevelopment ? FALLBACK_AUTH0_CLIENT_ID : throwError("VITE_AUTH0_CLIENT_ID"));
+
+function throwError(varName: string): never {
+  throw new Error(`Critical environment variable not set: ${varName}. This is required for production Auth0 configuration.`);
+}
 
 const AuthContext = createContext<AuthState | null>(null);
 

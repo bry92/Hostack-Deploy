@@ -1,8 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./dist/**/*.html",
-    "./content/**/*.json"
+    "./artifacts/hostack/src/**/*.{tsx,ts,jsx,js}",
+    "./lib/**/src/**/*.{tsx,ts,jsx,js}",
+    "./content/**/*.json",
+    "./dist/**/*.html"
   ],
   theme: {
     extend: {

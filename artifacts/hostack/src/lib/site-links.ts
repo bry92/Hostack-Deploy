@@ -9,6 +9,7 @@ export const PUBLIC_ROUTES = {
   about: "/about",
   blog: "/blog",
   careers: "/careers",
+  pricing: "/pricing",
   privacy: "/privacy",
   terms: "/terms",
 } as const;

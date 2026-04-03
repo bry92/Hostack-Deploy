@@ -51,6 +51,7 @@ export function PublicPageShell({
           </Link>
           <div className="hidden items-center gap-8 text-sm text-zinc-400 md:flex">
             <Link href={PUBLIC_ROUTES.about} className="transition-colors hover:text-white">About</Link>
+            <Link href={PUBLIC_ROUTES.pricing} className="transition-colors hover:text-white">Pricing</Link>
             <Link href={PUBLIC_ROUTES.blog} className="transition-colors hover:text-white">Blog</Link>
             <Link href={PUBLIC_ROUTES.careers} className="transition-colors hover:text-white">Careers</Link>
           </div>
@@ -110,7 +111,7 @@ export function PublicPageShell({
               <ul className="space-y-2 text-sm text-zinc-400">
                 <li><Link href={PUBLIC_ROUTES.home} className="transition-colors hover:text-white">Home</Link></li>
                 <li><a href={`${PUBLIC_ROUTES.home}#features`} className="transition-colors hover:text-white">Features</a></li>
-                <li><a href={`${PUBLIC_ROUTES.home}#compare`} className="transition-colors hover:text-white">Pricing</a></li>
+                <li><Link href={PUBLIC_ROUTES.pricing} className="transition-colors hover:text-white">Pricing</Link></li>
                 <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Changelog</a></li>
               </ul>
             </div>

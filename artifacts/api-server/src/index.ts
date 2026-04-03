@@ -75,7 +75,18 @@ async function main() {
   }
 
   app.listen(port, () => {
-    console.log(`Server listening on port ${port} (${runtime.mode} mode)`);
+    console.log(`[startup] Server listening on port ${port} (${runtime.mode} mode)`);
+    if (runtime.mode === "full") {
+      console.log("[startup] Full mode: Database-backed features enabled");
+      if (!process.env.DATABASE_URL) {
+        console.warn("[startup] ⚠️  DATABASE_URL not set - features requiring database will be unavailable");
+      }
+      if (!process.env.SECRET_ENCRYPTION_KEY) {
+        console.warn("[startup] ⚠️  SECRET_ENCRYPTION_KEY not set - secure features will fail");
+      }
+    } else {
+      console.log("[startup] Fallback mode: Limited functionality (development/testing only)");
+    }
     startBackgroundServices?.();
   });
 }

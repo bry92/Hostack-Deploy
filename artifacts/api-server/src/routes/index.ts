@@ -13,6 +13,7 @@ import customDomainsRouter from "./customDomains.js";
 import copilotRouter from "./copilot.js";
 import notificationsRouter from "./notifications.js";
 import buildRulesRouter from "./buildRules.js";
+import billingRouter from "./billing.js";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(customDomainsRouter);
 router.use(copilotRouter);
 router.use(notificationsRouter);
 router.use(buildRulesRouter);
+router.use(billingRouter);
 
 export default router;

@@ -29,6 +29,7 @@ export async function createApp(): Promise<CreatedApp> {
     }),
   );
   app.use(cookieParser());
+  app.use("/api/billing/webhook", express.raw({ type: "application/json" }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use((_req, res, next) => {

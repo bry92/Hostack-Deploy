@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@workspace/auth-web";
 import { Button } from "@/components/ui/button";
+import { PricingSection } from "@/components/marketing/pricing";
 import { CHANGELOG_URL, DEVTO_ARTICLE_URL, DOCS_URL, PUBLIC_ROUTES, REPO_URL, STATUS_URL } from "@/lib/site-links";
 import { motion } from "framer-motion";
 import {
@@ -241,6 +242,33 @@ export default function Home() {
     }
   };
 
+  const handleTeamCheckout = async () => {
+    if (!isAuthenticated) {
+      login("/dashboard");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ interval: "month" }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Stripe checkout failed");
+      }
+
+      const data = await response.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Failed to start Team checkout", error);
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white selection:bg-violet-500/30">
       <div className="pointer-events-none absolute inset-0 z-0 opacity-20">
@@ -264,6 +292,7 @@ export default function Home() {
             <a href="#features" className="transition-colors hover:text-white">Features</a>
             <a href="#how-it-works" className="transition-colors hover:text-white">How it Works</a>
             <a href="#compare" className="transition-colors hover:text-white">Compare</a>
+            <Link href={PUBLIC_ROUTES.pricing} className="transition-colors hover:text-white">Pricing</Link>
           </div>
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
@@ -447,6 +476,12 @@ export default function Home() {
           </div>
         </section>
 
+        <PricingSection
+          onFreeAction={handleCTA}
+          onTeamAction={handleTeamCheckout}
+          className="border-t-0 pt-0"
+        />
+
         <section className="border-y border-zinc-800 px-6 py-20">
           <div className="mx-auto max-w-3xl rounded-2xl border border-zinc-800 bg-zinc-900 px-6 py-12 text-center shadow-sm">
             <h2 className="mb-4 text-3xl font-semibold text-white md:text-4xl">Ready to deploy smarter?</h2>
@@ -479,7 +514,7 @@ export default function Home() {
               <ul className="space-y-2 text-sm text-zinc-400">
                 <li><a href="#features" className="transition-colors hover:text-white">Features</a></li>
                 <li><a href="#how-it-works" className="transition-colors hover:text-white">How it Works</a></li>
-                <li><a href="#compare" className="transition-colors hover:text-white">Pricing</a></li>
+                <li><Link href={PUBLIC_ROUTES.pricing} className="transition-colors hover:text-white">Pricing</Link></li>
                 <li><a href={CHANGELOG_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-white">Changelog</a></li>
               </ul>
             </div>
