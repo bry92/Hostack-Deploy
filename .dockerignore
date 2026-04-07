@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.cache
+**/.next
+**/.vercel
+**/.git
+**/.pnpm-store
+**/*.log
+.env
+.env.*
