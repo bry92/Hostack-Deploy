@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnvironmentBadge } from "@/components/ui/environment-badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DeploymentPipeline } from "@/components/pipeline";
 import { useDeploymentStream, usePromoteDeploymentMutation } from "@/hooks/use-deployments-mutations";
 import { formatDuration } from "@/lib/utils";
 
@@ -137,6 +138,23 @@ export default function DeploymentDetail() {
             </div>
           }
         />
+
+        {/* Real-time Pipeline Visualization for Active Deployments */}
+        {isRunning && (
+          <Card className="border-blue-500/30 bg-blue-500/5">
+            <CardContent className="p-6">
+              <DeploymentPipeline
+                projectName={deployment.projectName || "Project"}
+                repositoryUrl={deployment.repositoryUrl || ""}
+                branch={deployment.branch || "main"}
+                commitSha={deployment.commitHash || ""}
+                framework={deployment.framework}
+                onStarted={() => {}}
+                onCompleted={() => {}}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {isSuccess && deployment.deploymentUrl && (
           <Card className="border-emerald-500/30 bg-emerald-500/5">
