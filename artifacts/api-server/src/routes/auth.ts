@@ -1,5 +1,5 @@
 import * as oidc from "openid-client";
-import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
 import { db, usersTable } from "@workspace/db";
 import {
@@ -34,6 +34,15 @@ const MobileExchangeBody = z.object({
   nonce: z.string().optional(),
   redirectUri: z.string(),
 });
+
+/**
+ * Wrapper to catch async errors in Express route handlers
+ */
+function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
 function setSessionCookie(res: Response, sid: string) {
   res.cookie(SESSION_COOKIE, sid, {
@@ -112,123 +121,140 @@ router.get("/auth/user", (req: Request, res: Response) => {
   });
 });
 
-router.get("/login", async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
+router.get("/login", asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const config = await getOidcConfig();
 
-  const returnTo = getSafeReturnTo(
-    typeof req.query.returnTo === "string" ? req.query.returnTo : undefined,
-  );
+    const returnTo = getSafeReturnTo(
+      typeof req.query.returnTo === "string" ? req.query.returnTo : undefined,
+    );
 
-  const state = oidc.randomState();
-  const nonce = oidc.randomNonce();
-  const codeVerifier = oidc.randomPKCECodeVerifier();
-  const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
+    const state = oidc.randomState();
+    const nonce = oidc.randomNonce();
+    const codeVerifier = oidc.randomPKCECodeVerifier();
+    const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier);
 
-  const authorizationParams: Record<string, string> = {
-    redirect_uri: CALLBACK_URL,
-    scope: OIDC_SCOPE,
-    code_challenge: codeChallenge,
-    code_challenge_method: "S256",
-    state,
-    nonce,
-  };
-  if (OIDC_PROMPT) {
-    authorizationParams.prompt = OIDC_PROMPT;
+    const authorizationParams: Record<string, string> = {
+      redirect_uri: CALLBACK_URL,
+      scope: OIDC_SCOPE,
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
+      state,
+      nonce,
+    };
+    if (OIDC_PROMPT) {
+      authorizationParams.prompt = OIDC_PROMPT;
+    }
+    if (OIDC_AUDIENCE) {
+      authorizationParams.audience = OIDC_AUDIENCE;
+    }
+
+    const redirectTo = oidc.buildAuthorizationUrl(config, authorizationParams);
+
+    setOidcCookie(res, "code_verifier", codeVerifier);
+    setOidcCookie(res, "nonce", nonce);
+    setOidcCookie(res, "state", state);
+    setOidcCookie(res, "return_to", returnTo);
+
+    res.redirect(redirectTo.href);
+  } catch (error) {
+    console.error("Login error:", error);
+    const target = new URL(CANONICAL_APP_URL);
+    target.searchParams.set("auth_error", "login_failed");
+    res.redirect(target.href);
   }
-  if (OIDC_AUDIENCE) {
-    authorizationParams.audience = OIDC_AUDIENCE;
-  }
+}));
 
-  const redirectTo = oidc.buildAuthorizationUrl(config, authorizationParams);
-
-  setOidcCookie(res, "code_verifier", codeVerifier);
-  setOidcCookie(res, "nonce", nonce);
-  setOidcCookie(res, "state", state);
-  setOidcCookie(res, "return_to", returnTo);
-
-  res.redirect(redirectTo.href);
-});
-
-router.get("/callback", async (req: Request, res: Response) => {
+router.get("/callback", asyncHandler(async (req: Request, res: Response) => {
   console.log("Auth callback hit");
 
-  const config = await getOidcConfig();
-
-  const codeVerifier = req.cookies?.code_verifier;
-  const nonce = req.cookies?.nonce;
-  const expectedState = req.cookies?.state;
-
-  if (!codeVerifier || !expectedState) {
-    redirectToAuthError(req, res, "missing_login_state");
-    return;
-  }
-
-  const currentUrl = new URL(req.originalUrl || "/api/callback", `${CANONICAL_APP_URL}/`);
-  currentUrl.pathname = "/api/callback";
-
-  let tokens: oidc.TokenEndpointResponse & oidc.TokenEndpointResponseHelpers;
   try {
-    tokens = await oidc.authorizationCodeGrant(config, currentUrl, {
-      pkceCodeVerifier: codeVerifier,
-      expectedNonce: nonce,
-      expectedState,
-      idTokenExpected: true,
-    });
+    const config = await getOidcConfig();
+
+    const codeVerifier = req.cookies?.code_verifier;
+    const nonce = req.cookies?.nonce;
+    const expectedState = req.cookies?.state;
+
+    if (!codeVerifier || !expectedState) {
+      redirectToAuthError(req, res, "missing_login_state");
+      return;
+    }
+
+    const currentUrl = new URL(req.originalUrl || "/api/callback", `${CANONICAL_APP_URL}/`);
+    currentUrl.pathname = "/api/callback";
+
+    let tokens: oidc.TokenEndpointResponse & oidc.TokenEndpointResponseHelpers;
+    try {
+      tokens = await oidc.authorizationCodeGrant(config, currentUrl, {
+        pkceCodeVerifier: codeVerifier,
+        expectedNonce: nonce,
+        expectedState,
+        idTokenExpected: true,
+      });
+    } catch (error) {
+      console.error("OIDC callback token exchange failed", error);
+      redirectToAuthError(req, res, "token_exchange_failed");
+      return;
+    }
+
+    const returnTo = getSafeReturnTo(
+      typeof req.cookies?.return_to === "string" ? req.cookies.return_to : undefined,
+    );
+
+    res.clearCookie("code_verifier", { path: "/" });
+    res.clearCookie("nonce", { path: "/" });
+    res.clearCookie("state", { path: "/" });
+    res.clearCookie("return_to", { path: "/" });
+
+    const claims = tokens.claims();
+    if (!claims) {
+      redirectToAuthError(req, res, "missing_claims");
+      return;
+    }
+
+    const dbUser = await upsertUser(claims as unknown as Record<string, unknown>);
+
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImage: dbUser.profileImageUrl,
+      },
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: tokens.expiresIn() ? now + tokens.expiresIn()! : claims.exp,
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+    res.redirect(returnTo);
   } catch (error) {
-    console.error("OIDC callback token exchange failed", error);
-    redirectToAuthError(req, res, "token_exchange_failed");
-    return;
+    console.error("Callback error:", error);
+    redirectToAuthError(req, res, "callback_failed");
   }
+}));
 
-  const returnTo = getSafeReturnTo(
-    typeof req.cookies?.return_to === "string" ? req.cookies.return_to : undefined,
-  );
-
-  res.clearCookie("code_verifier", { path: "/" });
-  res.clearCookie("nonce", { path: "/" });
-  res.clearCookie("state", { path: "/" });
-  res.clearCookie("return_to", { path: "/" });
-
-  const claims = tokens.claims();
-  if (!claims) {
-    redirectToAuthError(req, res, "missing_claims");
-    return;
-  }
-
-  const dbUser = await upsertUser(claims as unknown as Record<string, unknown>);
-
-  const now = Math.floor(Date.now() / 1000);
-  const sessionData: SessionData = {
-    user: {
-      id: dbUser.id,
-      email: dbUser.email,
-      firstName: dbUser.firstName,
-      lastName: dbUser.lastName,
-      profileImage: dbUser.profileImageUrl,
-    },
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
-    expires_at: tokens.expiresIn() ? now + tokens.expiresIn()! : claims.exp,
-  };
-
-  const sid = await createSession(sessionData);
-  setSessionCookie(res, sid);
-  res.redirect(returnTo);
-});
-
-router.get("/logout", async (req: Request, res: Response) => {
+router.get("/logout", asyncHandler(async (req: Request, res: Response) => {
   console.log("Logout triggered");
 
-  const sid = getSessionId(req);
-  await clearSession(res, sid);
+  try {
+    const sid = getSessionId(req);
+    await clearSession(res, sid);
 
-  const logoutUrl = new URL(`https://${getAuth0Domain()}/v2/logout`);
-  logoutUrl.searchParams.set("client_id", OIDC_CLIENT_ID);
-  logoutUrl.searchParams.set("returnTo", CANONICAL_APP_URL);
-  res.redirect(logoutUrl.href);
-});
+    const logoutUrl = new URL(`https://${getAuth0Domain()}/v2/logout`);
+    logoutUrl.searchParams.set("client_id", OIDC_CLIENT_ID);
+    logoutUrl.searchParams.set("returnTo", CANONICAL_APP_URL);
+    res.redirect(logoutUrl.href);
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.redirect(CANONICAL_APP_URL);
+  }
+}));
 
-router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) => {
+router.post("/mobile-auth/token-exchange", asyncHandler(async (req: Request, res: Response) => {
   const parsed = MobileExchangeBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required parameters" });
@@ -280,14 +306,19 @@ router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) =
     console.error("Mobile token exchange error:", err);
     res.status(500).json({ error: "Token exchange failed" });
   }
-});
+}));
 
-router.post("/mobile-auth/logout", async (req: Request, res: Response) => {
-  const sid = getSessionId(req);
-  if (sid) {
-    await deleteSession(sid);
+router.post("/mobile-auth/logout", asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const sid = getSessionId(req);
+    if (sid) {
+      await deleteSession(sid);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Mobile logout error:", error);
+    res.json({ success: true });
   }
-  res.json({ success: true });
-});
+}));
 
 export default router;

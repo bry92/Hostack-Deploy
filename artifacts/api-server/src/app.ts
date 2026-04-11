@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { getRuntimeBootstrap, type RuntimeBootstrap } from "./lib/runtimeMode.ts";
@@ -7,6 +7,34 @@ import projectsEntryRouter from "./routes/projects.entry.ts";
 export interface CreatedApp {
   app: Express;
   runtime: Pick<RuntimeBootstrap, "mode">;
+}
+
+/**
+ * Global error handler for Express
+ * Catches errors from async route handlers and returns proper HTTP responses
+ */
+function createErrorHandler() {
+  return (
+    err: Error | unknown,
+    _req: Request,
+    res: Response,
+    _next: NextFunction,
+  ) => {
+    const error = err instanceof Error ? err : new Error(String(err));
+    const statusCode = (err as any)?.statusCode ?? 500;
+    const message = error.message || "Internal Server Error";
+
+    console.error(`[error] ${statusCode} ${message}`, error);
+
+    if (res.headersSent) {
+      return;
+    }
+
+    res.status(statusCode).json({
+      error: message,
+      status: statusCode,
+    });
+  };
 }
 
 export async function createApp(): Promise<CreatedApp> {
@@ -45,6 +73,9 @@ export async function createApp(): Promise<CreatedApp> {
   });
   app.use("/api", projectsEntryRouter);
   app.use("/api", runtime.router);
+
+  // Global error handler - must be last
+  app.use(createErrorHandler());
 
   return {
     app,
