@@ -99,6 +99,12 @@ export const OIDC_SCOPE =
   getEnv("OIDC_SCOPE", "AUTH0_SCOPE") ?? "openid profile email offline_access";
 export const OIDC_AUDIENCE = getEnv("OIDC_AUDIENCE", "AUTH0_AUDIENCE");
 export const OIDC_PROMPT = getEnv("OIDC_PROMPT", "AUTH0_PROMPT");
+
+// GitHub OAuth Configuration
+export const GITHUB_CLIENT_ID = getEnv("GITHUB_CLIENT_ID");
+export const GITHUB_CLIENT_SECRET = getEnv("GITHUB_CLIENT_SECRET");
+export const GITHUB_CALLBACK_URL = GITHUB_CLIENT_ID ? `${CANONICAL_APP_URL}/api/github-callback` : undefined;
+
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 export const COOKIE_SECURE = new URL(CANONICAL_APP_URL).protocol === "https:";

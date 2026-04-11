@@ -13,7 +13,7 @@ interface AuthState {
   isAuthenticated: boolean;
   runtimeMode: RuntimeMode;
   isFallbackMode: boolean;
-  login: (returnTo?: string) => void;
+  login: (returnTo?: string, provider?: string) => void;
   logout: () => void;
 }
 
@@ -74,7 +74,7 @@ function Auth0Bridge({
 }: {
   children: ReactNode;
   runtimeMode: RuntimeMode;
-  login: (returnTo?: string) => void;
+  login: (returnTo?: string, provider?: string) => void;
   logout: () => void;
 }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -162,13 +162,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback((returnTo?: string) => {
+  const login = useCallback((returnTo?: string, provider?: string) => {
     if (typeof window === "undefined") {
       return;
     }
 
     const target = getSafeReturnTo(returnTo || window.location.pathname || "/");
-    window.location.href = `/api/login?returnTo=${encodeURIComponent(target)}`;
+    const endpoint = provider === "github" ? "/api/github-login" : "/api/login";
+    window.location.href = `${endpoint}?returnTo=${encodeURIComponent(target)}`;
   }, []);
 
   const logout = useCallback(() => {

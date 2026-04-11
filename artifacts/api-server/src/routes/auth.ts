@@ -19,6 +19,9 @@ import {
   OIDC_PROMPT,
   OIDC_SCOPE,
   type SessionData,
+  GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET,
+  GITHUB_CALLBACK_URL,
 } from "../lib/auth.js";
 import { createSafeReturnToResolver } from "../lib/safeReturnTo.js";
 
@@ -119,6 +122,40 @@ router.get("/auth/user", (req: Request, res: Response) => {
       profileImage: u.profileImage ?? undefined,
     },
   });
+});
+
+/**
+ * Get available auth providers
+ */
+router.get("/auth/providers", (req: Request, res: Response) => {
+  const providers: Array<{
+    name: string;
+    id: string;
+    enabled: boolean;
+    loginUrl: string;
+  }> = [];
+
+  // Auth0/OIDC provider (always available unless explicitly disabled)
+  if (OIDC_CLIENT_ID) {
+    providers.push({
+      name: "Auth0",
+      id: "auth0",
+      enabled: true,
+      loginUrl: "/api/login",
+    });
+  }
+
+  // GitHub provider
+  if (GITHUB_CLIENT_ID) {
+    providers.push({
+      name: "GitHub",
+      id: "github",
+      enabled: true,
+      loginUrl: "/api/github-login",
+    });
+  }
+
+  res.json({ providers });
 });
 
 router.get("/login", asyncHandler(async (req: Request, res: Response) => {
@@ -318,6 +355,185 @@ router.post("/mobile-auth/logout", asyncHandler(async (req: Request, res: Respon
   } catch (error) {
     console.error("Mobile logout error:", error);
     res.json({ success: true });
+  }
+}));
+
+/**
+ * GitHub OAuth Login
+ * Initiates GitHub OAuth flow
+ */
+router.get("/github-login", asyncHandler(async (req: Request, res: Response) => {
+  try {
+    if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET || !GITHUB_CALLBACK_URL) {
+      res.status(400).json({ error: "GitHub OAuth not configured" });
+      return;
+    }
+
+    const returnTo = getSafeReturnTo(
+      typeof req.query.returnTo === "string" ? req.query.returnTo : undefined,
+    );
+
+    const state = oidc.randomState();
+    const githubAuthUrl = new URL("https://github.com/login/oauth/authorize");
+    githubAuthUrl.searchParams.set("client_id", GITHUB_CLIENT_ID);
+    githubAuthUrl.searchParams.set("redirect_uri", GITHUB_CALLBACK_URL);
+    githubAuthUrl.searchParams.set("scope", "user:email");
+    githubAuthUrl.searchParams.set("state", state);
+    githubAuthUrl.searchParams.set("allow_signup", "true");
+
+    // Store state and returnTo for callback validation
+    setOidcCookie(res, "github_state", state);
+    setOidcCookie(res, "return_to", returnTo);
+
+    res.redirect(githubAuthUrl.href);
+  } catch (error) {
+    console.error("GitHub login error:", error);
+    const target = new URL(CANONICAL_APP_URL);
+    target.searchParams.set("auth_error", "github_login_failed");
+    res.redirect(target.href);
+  }
+}));
+
+/**
+ * GitHub OAuth Callback
+ * Handles GitHub OAuth callback and creates session
+ */
+router.get("/github-callback", asyncHandler(async (req: Request, res: Response) => {
+  try {
+    if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET || !GITHUB_CALLBACK_URL) {
+      redirectToAuthError(req, res, "github_not_configured");
+      return;
+    }
+
+    const code = req.query.code as string;
+    const state = req.query.state as string;
+    const storedState = req.cookies?.github_state;
+
+    if (!code || !state || state !== storedState) {
+      console.error("GitHub OAuth state mismatch or missing code", { code, state, storedState });
+      redirectToAuthError(req, res, "github_state_mismatch");
+      return;
+    }
+
+    // Exchange code for access token
+    const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: GITHUB_CLIENT_ID,
+        client_secret: GITHUB_CLIENT_SECRET,
+        code,
+        redirect_uri: GITHUB_CALLBACK_URL,
+        state,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json() as Record<string, unknown>;
+
+    if (!tokenResponse.ok || "error" in tokenData) {
+      console.error("GitHub token exchange failed", tokenData);
+      redirectToAuthError(req, res, "github_token_failed");
+      return;
+    }
+
+    const accessToken = tokenData.access_token as string | undefined;
+    if (!accessToken) {
+      redirectToAuthError(req, res, "github_no_token");
+      return;
+    }
+
+    // Fetch user info from GitHub
+    const userResponse = await fetch("https://api.github.com/user", {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/vnd.github.v3+json",
+      },
+    });
+
+    const githubUser = await userResponse.json() as Record<string, unknown>;
+
+    if (!userResponse.ok || typeof githubUser.id !== "number") {
+      console.error("Failed to fetch GitHub user", githubUser);
+      redirectToAuthError(req, res, "github_user_fetch_failed");
+      return;
+    }
+
+    // Fetch user email from GitHub
+    let email: string | null = null;
+    if (typeof githubUser.email === "string" && githubUser.email) {
+      email = githubUser.email;
+    } else {
+      // If no primary email, fetch from emails endpoint
+      const emailResponse = await fetch("https://api.github.com/user/emails", {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Accept": "application/vnd.github.v3+json",
+        },
+      });
+
+      if (emailResponse.ok) {
+        const emails = await emailResponse.json() as Array<{ email: string; primary: boolean }>;
+        const primaryEmail = emails.find((e) => e.primary);
+        email = primaryEmail?.email || emails[0]?.email || null;
+      }
+    }
+
+    // Create or update user
+    const userId = `github_${githubUser.id}`;
+    const userData = {
+      id: userId,
+      email: email,
+      firstName: (typeof githubUser.name === "string" ? githubUser.name.split(" ")[0] : null) || null,
+      lastName: (typeof githubUser.name === "string" && githubUser.name.includes(" ") 
+        ? githubUser.name.split(" ").slice(1).join(" ") 
+        : null) || null,
+      profileImageUrl: (typeof githubUser.avatar_url === "string" ? githubUser.avatar_url : null) || null,
+    };
+
+    const [user] = await db
+      .insert(usersTable)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: usersTable.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    // Create session
+    const now = Math.floor(Date.now() / 1000);
+    const sessionData: SessionData = {
+      user: {
+        id: user.id,
+        email: user.email ?? undefined,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        profileImage: user.profileImageUrl ?? undefined,
+      },
+      access_token: accessToken,
+      expires_at: now + 3600, // GitHub tokens expire in 1 hour
+    };
+
+    const sid = await createSession(sessionData);
+    setSessionCookie(res, sid);
+
+    // Clear temporary cookies
+    res.clearCookie("github_state", { path: "/" });
+    res.clearCookie("return_to", { path: "/" });
+
+    const returnTo = getSafeReturnTo(
+      typeof req.cookies?.return_to === "string" ? req.cookies.return_to : undefined,
+    );
+
+    res.redirect(returnTo);
+  } catch (error) {
+    console.error("GitHub callback error:", error);
+    redirectToAuthError(req, res, "github_callback_failed");
   }
 }));
 
