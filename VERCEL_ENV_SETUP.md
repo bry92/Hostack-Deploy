@@ -114,20 +114,40 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 **Optional if you're not using Stripe payments yet**.
 
-### 🐙 GitHub OAuth (if using GitHub integration)
+### 🐙 GitHub OAuth (for login/authentication)
 
 ```
-GITHUB_CLIENT_ID=your-github-app-client-id
-GITHUB_CLIENT_SECRET=your-github-app-client-secret
+GITHUB_CLIENT_ID=your-github-oauth-app-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-app-client-secret
 ```
 
-- **How to create GitHub App**:
-  1. Go to GitHub Settings → Developer settings → OAuth Apps
-  2. Create New OAuth App
-  3. Set Authorization callback URL: `https://your-domain.vercel.app/api/github/callback`
-  4. Copy Client ID and Client Secret
+- **How to set up GitHub OAuth App**:
+  1. Go to https://github.com/settings/developers
+  2. Click **New OAuth App**
+  3. Fill in:
+     - **Application name**: `Hostack`
+     - **Homepage URL**: `https://your-domain.vercel.app`
+     - **Authorization callback URL**: `https://your-domain.vercel.app/api/github-callback`
+  4. Copy the **Client ID** and generate a **Client Secret**
+  
+- **What this enables**:
+  - Users can log in with their GitHub account
+  - GitHub and Auth0 can be used simultaneously
+  
+**Optional - only needed if you want GitHub login support**.
 
-**Optional if you're not using GitHub integration yet**.
+### 🔓 GitHub OAuth (for repository integration)
+
+If using GitHub integration for connecting repositories:
+
+```
+GITHUB_APP_CLIENT_ID=your-github-app-client-id
+GITHUB_APP_CLIENT_SECRET=your-github-app-client-secret
+```
+
+These are different from the OAuth login credentials above. This is for connecting GitHub repositories for deployments.
+
+**Optional if you're not using GitHub repository integration yet**.
 
 ---
 
