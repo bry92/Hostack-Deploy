@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hostack — Deploy from GitHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold text-gray-900">Hostack</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Deploy</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="btn-new-project" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Project
+          </button>
+          <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">B</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Tab Navigation -->
+  <div class="bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex gap-0" id="tab-nav">
+        <button class="tab-btn active-tab px-5 py-4 text-sm font-medium border-b-2 transition-colors" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn px-5 py-4 text-sm font-medium border-b-2 transition-colors" data-tab="projects">Projects</button>
+        <button class="tab-btn px-5 py-4 text-sm font-medium border-b-2 transition-colors" data-tab="deployments">Deployments</button>
+        <button class="tab-btn px-5 py-4 text-sm font-medium border-b-2 transition-colors" data-tab="envvars">Env Vars</button>
+        <button class="tab-btn px-5 py-4 text-sm font-medium border-b-2 transition-colors" data-tab="settings">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ===== DASHBOARD TAB ===== -->
+    <div id="tab-dashboard" class="tab-panel">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p class="text-gray-600 mt-1">Overview of your Hostack deployment platform</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-500 font-medium">Total Projects</span>
+            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+            </div>
+          </div>
+          <div class="text-3xl font-bold text-gray-900" id="stat-projects">4</div>
+          <div class="text-xs text-green-600 mt-1 font-medium">↑ 2 this month</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-500 font-medium">Deployments</span>
+            <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="text-3xl font-bold text-gray-900" id="stat-deployments">23</div>
+          <div class="text-xs text-green-600 mt-1 font-medium">↑ 8 this week</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-500 font-medium">Success Rate</span>
+            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">91%</div>
+          <div class="text-xs text-green-600 mt-1 font-medium">↑ 3% vs last month</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-500 font-medium">Avg Build Time</span>
+            <div class="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <div class="text-3xl font-bold text-gray-900">42s</div>
+          <div class="text-xs text-red-500 mt-1 font-medium">↑ 5s vs last week</div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Deployments</h2>
+          <div id="dashboard-recent-deployments" class="space-y-3"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div class="space-y-3">
+            <button class="quick-action-btn w-full text-left flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors" data-action="new-project">
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-900">New Project</div>
+                <div class="text-xs text-gray-500">Connect a GitHub repo</div>
+              </div>
+            </button>
+            <button class="quick-action-btn w-full text-left flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors" data-action="trigger-deploy">
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-900">Trigger Deploy</div>
+                <div class="text-xs text-gray-500">Deploy latest commit</div>
+              </div>
+            </button>
+            <button class="quick-action-btn w-full text-left flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors" data-action="view-logs">
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </div>
+              <div>
+                <div class="text-sm font-medium text-gray-900">View Logs</div>
+                <div class="text-xs text-gray-500">Raw build output</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROJECTS TAB ===== -->
+    <div id="tab-projects" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Projects</h1>
+          <p class="text-gray-600 mt-1">GitHub repositories connected to Hostack</p>
+        </div>
+        <button id="btn-add-project" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Add Project
+        </button>
+      </div>
+
+      <!-- Add Project Form (hidden by default) -->
+      <div id="add-project-form" class="hidden bg-white rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Connect GitHub Repository</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+            <input id="new-project-name" type="text" placeholder="my-awesome-app" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Repo URL</label>
+            <input id="new-project-repo" type="text" placeholder="https://github.com/user/repo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Framework</label>
+            <select id="new-project-framework" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white">
+              <option value="react">React / Vite</option>
+              <option value="next">Next.js</option>
+              <option value="express">Express API</option>
+              <option value="static">Static HTML</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+            <input id="new-project-branch" type="text" placeholder="main" value="main" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+          </div>
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button id="btn-save-project" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">Connect Repository</button>
+          <button id="btn-cancel-project" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors text-sm">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Projects Grid -->
+      <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- ===== DEPLOYMENTS TAB ===== -->
+    <div id="tab-deployments" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Deployments</h1>
+          <p class="text-gray-600 mt-1">Build history and deployment logs</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="deployment-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white">
+            <option value="all">All Projects</option>
+            <option value="hostack-deploy">Hostack Deploy</option>
+            <option value="api-server">API Server</option>
+            <option value="frontend">Frontend</option>
+          </select>
+          <button id="btn-trigger-deploy" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Trigger Deploy
+          </button>
+        </div>
+      </div>
+
+      <!-- Deployment Log Modal -->
+      <div id="log-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col">
+          <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900" id="log-modal-title">Build Logs</h3>
+            <button id="btn-close-log" class="text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="p-6 overflow-y-auto flex-1">
+            <pre id="log-modal-content" class="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deployments Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Commit</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Triggered</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deployments-tbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ENV VARS TAB ===== -->
+    <div id="tab-envvars" class="tab-panel hidden">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Environment Variables</h1>
+          <p class="text-gray-600 mt-1">Manage secrets and configuration per project</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select id="envvar-project-select" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white">
+            <option value="hostack-deploy">Hostack Deploy</option>
+            <option value="api-server">API Server</option>
+            <option value="frontend">Frontend</option>
+            <option value="n8n-automation">n8n Automation</option>
+          </select>
+          <button id="btn-add-env" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Variable
+          </button>
+        </div>
+      </div>
+
+      <!-- Add Env Var Form -->
+      <div id="add-env-form" class="hidden bg-white rounded-xl shadow-sm border border-blue-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Environment Variable</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Key</label>
+            <input id="new-env-key" type="text" placeholder="DATABASE_URL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Value</label>
+            <input id="new-env-value" type="text" placeholder="postgres://..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono">
+          </div>
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button id="btn-save-env" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">Save Variable</button>
+          <button id="btn-cancel-env" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors text-sm">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Env Vars Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>
+              <th class="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="envvars-tbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <div id="tab-settings" class="tab-panel hidden">
+      <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+        <p class="text-gray-600 mt-1">Platform configuration and build rules</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Settings Sections -->
+        <div class="lg:col-span-2 space-y-6">
+
+          <!-- Build Rules -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Build Rules</h2>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Build Command</label>
+                <input id="setting-build-cmd" type="text" value="pnpm run build" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Output Directory</label>
+                <input id="setting-output-dir" type="text" value="dist" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Install Command</label>
+                <input id="setting-install-cmd" type="text" value="pnpm install --frozen-lockfile" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm font-mono">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Node Version</label>
+                <select id="setting-node-version" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white">
+                  <option value="20">Node 20 (LTS)</option>
+                  <option value="18">Node 18</option>
+                  <option value="22">Node 22</option>
+                </select>
+              </div>
+              <button id="btn-save-build-rules" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">Save Build Rules</button>
+            </div>
+          </div>
+
+          <!-- Custom Domains -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Custom Domains</h2>
+            <div id="domains-list" class="space-y-3 mb-4"></div>
+            <div class="flex gap-3">
+              <input id="new-domain-input" type="text" placeholder="app.yourdomain.com" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+              <button id="btn-add-domain" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">Add Domain</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Platform Info -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Platform Info</h2>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Runtime</span>
+                <span class="text-sm font-medium text-gray-900">Node 20 LTS</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Package Manager</span>
+                <span class="text-sm font-medium text-gray-900">pnpm</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Framework</span>
+                <span class="text-sm font-medium text-gray-900">Express 5 + Vite</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Database</span>
+                <span class="text-sm font-medium text-gray-900">Drizzle ORM</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Auth</span>
+                <span class="text-sm font-medium text-gray-900">OpenID Connect</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Billing</span>
+                <span class="text-sm font-medium text-gray-900">Stripe</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Danger Zone</h2>
+            <p class="text-sm text-gray-600 mb-4">Irreversible actions. Proceed with caution.</p>
+            <button id="btn-reset-settings" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm">Reset All Settings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium max-w-sm">
+    <span id="toast-icon">✓</span>
+    <span id="toast-message">Action completed</span>
+  </div>
+
+  <script src="script.js"></script>
+
+  <div style="text-align:center;padding:12px 0 8px"><a href="https://buildorbit.polsia.app" target="_blank" rel="noopener" style="font-size:0.75rem;color:#9ca3af;text-decoration:none">Built with 🛞 BuildOrbit</a></div>
+</body>
+</html>

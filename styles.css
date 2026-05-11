@@ -1,0 +1,116 @@
+/* Hostack Deploy — custom animations and overrides */
+/* Tailwind CDN handles all utility classes; this file handles keyframes and transitions */
+
+/* Tab active state — cannot be expressed purely with Tailwind without JIT config */
+.tab-btn {
+  color: #6b7280; /* text-gray-500 */
+  border-bottom-color: transparent;
+}
+
+.tab-btn:hover {
+  color: #374151; /* text-gray-700 */
+  border-bottom-color: #d1d5db; /* border-gray-300 */
+}
+
+.tab-btn.active-tab {
+  color: #2563eb; /* text-blue-600 */
+  border-bottom-color: #2563eb; /* border-blue-600 */
+  font-weight: 600;
+}
+
+/* Toast slide-in animation */
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+#toast.visible {
+  display: flex;
+  animation: slideInUp 0.25s ease-out forwards;
+}
+
+/* Deployment status pulse for "building" state */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-building .pulse-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+/* Card hover lift */
+.project-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Log modal fade */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#log-modal:not(.hidden) {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Env var value masked text */
+.env-masked {
+  font-family: monospace;
+  letter-spacing: 0.15em;
+  color: #9ca3af;
+}
+
+/* Smooth reveal for add forms */
+.form-reveal {
+  animation: slideInUp 0.2s ease-out;
+}
+
+/* Table row hover */
+tbody tr {
+  transition: background-color 0.1s ease;
+}
+
+/* Domain badge */
+.domain-verified {
+  color: #059669;
+}
+
+.domain-pending {
+  color: #d97706;
+}
+
+/* Scrollbar styling for log modal */
+#log-modal-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+#log-modal-content::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+#log-modal-content::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+/* Responsive table scroll */
+@media (max-width: 768px) {
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
